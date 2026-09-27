@@ -2,6 +2,8 @@
 
 A source-controlled Roblox vertical-slice candidate based on `PRIVATE_JET_CHARTER_TYCOON_BUILD_SPEC.md`. The first route is fictional Riviera / Monaco, with an original Aster L6 light jet and customizable Aster hangar.
 
+**On a MacBook? Start with [START_HERE_MAC.md](START_HERE_MAC.md).** Ready-to-open `.rbxl` and `.rbxlx` files are included in `build/`; no build tools are needed to open them in Studio.
+
 **Status: local build and offline tests pass; Roblox Studio playtesting is blocked by its login screen.** The user chose to continue locally. This is not a finished V1 or a claim of premium production quality. Do not publish it as a release until the Studio gates below pass.
 
 ## Open and play

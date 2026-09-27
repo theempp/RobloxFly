@@ -4,9 +4,12 @@ tools/lune/
 tools/vendor/
 tools/*.zip
 build/*.rbxl*
+!build/PrivateJetCharterTycoon.rbxl
+!build/PrivateJetCharterTycoon.rbxlx
 build/*.rbxm
 build/*.log
 build/scene.json
+dist/
 .DS_Store
 *.rbxl.lock
 *.rbxlx.lock

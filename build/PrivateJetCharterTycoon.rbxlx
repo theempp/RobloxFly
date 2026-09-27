@@ -1,0 +1,2011 @@
+<roblox version="4">
+  <Item class="Lighting" referent="0">
+    <Properties>
+      <string name="Name">Lighting</string>
+      <float name="Brightness">2</float>
+      <float name="ClockTime">16.7</float>
+      <float name="EnvironmentDiffuseScale">0.55</float>
+      <float name="EnvironmentSpecularScale">1</float>
+      <bool name="GlobalShadows">true</bool>
+    </Properties>
+  </Item>
+  <Item class="ReplicatedStorage" referent="1">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+    <Item class="Folder" referent="2">
+      <Properties>
+        <string name="Name">Shared</string>
+      </Properties>
+      <Item class="ModuleScript" referent="3">
+        <Properties>
+          <string name="Name">AudioCatalog</string>
+          <string name="Source"><![CDATA[-- Original WAVs live in assets/audio. Upload to the experience owner, then set IDs.
+-- An empty ID deliberately stays silent; essential audio has captions.
+return {
+	Hangar = { Id = "", Loop = true, Volume = 0.18, Caption = "Hangar ventilation" },
+	Turbine = { Id = "", Loop = true, Volume = 0.45, Caption = "Turbines spooling" },
+	Wind = { Id = "", Loop = true, Volume = 0.14, Caption = "Cabin air" },
+	Phone = { Id = "", Volume = 0.35, Caption = "New charter offers" },
+	Door = { Id = "", Volume = 0.30, Caption = "Cabin door secured" },
+	Service = { Id = "", Volume = 0.30, Caption = "Client service requested" },
+	Touchdown = { Id = "", Volume = 0.45, Caption = "Main gear touchdown" },
+	Results = { Id = "", Volume = 0.35, Caption = "Charter complete" },
+	Gear = { Id = "", Volume = 0.30, Caption = "Landing gear moving" },
+}
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="4">
+        <Properties>
+          <string name="Name">Config</string>
+          <string name="Source"><![CDATA[--!strict
+-- Starting balance values. No product IDs or purchased training tokens.
+return {
+	Schema = 1,
+	DataStore = "PJCT_Profile_v1",
+	StartingCredits = 2400,
+	OfferLifetime = 150,
+	Flight = { Step = 1 / 30, InputHz = 10, SnapshotHz = 4, RouteLength = 15000,
+		RotateSpeed = 72, CruiseSpeed = 112, LandingSpeedMin = 45, LandingSpeedMax = 88,
+		CruiseAltitude = 260, ApproachStart = 11200, RunwayStart = 13900, RunwayEnd = 15400,
+		RunwayHalfWidth = 42, GearHeight = 5.4, MaxAltitude = 520, MaxLateral = 420 },
+	Scoring = { Smoothness = 25, Timing = 20, Service = 25, Discretion = 20, Safety = 10 },
+	Economy = { CoopBonus = 0.10, DaySeconds = 1200, TrainingCost = 300, SkillStep = 2,
+		SkillCap = 85, BadgeCost = 900, HangarCost = 1400, ServiceCost = 1800 },
+	Roles = { "Captain", "First Officer", "Cabin Host", "Ground / Security" },
+	Jets = {
+		aster_l6 = { Name = "Aster L6", Class = "Light", Seats = 6, Range = 2100, Fuel = 1300, Handling = 88, Comfort = 72, Price = 0, Reputation = 0 },
+	},
+	Destinations = {
+		riviera = { Name = "Monaco · Riviera", Code = "RVA", Range = 680, FlightSeconds = 240, Weather = "Coastal haze", Latitude = "43°44′ N" },
+	},
+	Clients = {
+		{ Name = "Elara Voss", Title = "Design director", Party = 3, Fee = 1500, Patience = 50, Preference = "Tea", Mood = "Warm", Privacy = "Covered", Time = 420 },
+		{ Name = "Milo Laurent", Title = "Film composer", Party = 2, Fee = 1720, Patience = 42, Preference = "Coffee", Mood = "Quiet", Privacy = "Covered", Time = 400 },
+		{ Name = "Sana Vale", Title = "Ocean foundation chair", Party = 4, Fee = 1880, Patience = 38, Preference = "Water", Mood = "Cool", Privacy = "Covered", Time = 380 },
+	},
+	Teams = {
+		pilot_starter = { Name = "Meridian Flight", Category = "Pilot", Grade = "Foundation", Price = 0, Salary = 0, Skills = { Takeoff = 62, Cruise = 66, Navigation = 64, Landing = 60, Safety = 68 } },
+		cabin_starter = { Name = "Linen Service", Category = "Cabin", Grade = "Foundation", Price = 0, Salary = 0, Skills = { Speed = 60, Reading = 64, Catering = 62, Composure = 66 } },
+		security_starter = { Name = "Quietline", Category = "Security", Grade = "Foundation", Price = 0, Salary = 0, Skills = { Discretion = 62, Crowd = 60, Logistics = 66, Response = 64 } },
+		cabin_silk = { Name = "Silk Collective", Category = "Cabin", Grade = "Elite", Price = 2200, Salary = 60, Skills = { Speed = 76, Reading = 80, Catering = 78, Composure = 74 } },
+		pilot_horizon = { Name = "Horizon Flight", Category = "Pilot", Grade = "Elite", Price = 2800, Salary = 75, Skills = { Takeoff = 78, Cruise = 76, Navigation = 80, Landing = 76, Safety = 82 } },
+		security_velvet = { Name = "Velvet Detail", Category = "Security", Grade = "Elite", Price = 2100, Salary = 55, Skills = { Discretion = 80, Crowd = 76, Logistics = 78, Response = 74 } },
+	},
+	Badges = {
+		cabin_calm = { Name = "Unhurried", TeamCategory = "Cabin", Runs = 5, Benefit = "Client requests allow 5 extra seconds.", Seconds = 5 },
+	},
+	Season = { Name = "Above the ordinary", Weeks = 5, Enabled = false, PremiumProductId = 0, CompleteProductId = 0 },
+	Products = { Credits = { Id = 0, Amount = 10000 } },
+	Limits = { MaxCrew = 4, RemoteBurst = 20, RemoteRate = 12, InteractionDistance = 18 },
+}
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="5">
+        <Properties>
+          <string name="Name">Domain</string>
+          <string name="Source"><![CDATA[--!strict
+-- Pure domain code, exercised by tests/domain.luau without a Roblox process.
+local Domain = {}
+
+function Domain.tailNumber(userId: number, jetIndex: number): string
+	local digits, value, encoded = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", math.abs(userId), ""
+	repeat local n = value % 36; encoded = string.sub(digits, n + 1, n + 1) .. encoded; value = math.floor(value / 36) until value == 0
+	return "AS-" .. (if userId < 0 then "S" else "U") .. encoded .. "-" .. jetIndex
+end
+
+function Domain.copy(value: any): any
+	if type(value) ~= "table" then return value end
+	local result = {}
+	for key, item in value do result[key] = Domain.copy(item) end
+	return result
+end
+
+function Domain.newProfile(config: any): any
+	local teams = {}
+	for id, team in config.Teams do
+		if team.Price == 0 then teams[id] = { Skills = Domain.copy(team.Skills), Runs = 0, Badges = {} } end
+	end
+	return { Version = config.Schema, Credits = config.StartingCredits, XP = 0, Reputation = 0, Tokens = 0,
+		Runs = 0, RoleXP = {}, Jets = { aster_l6 = true }, ActiveJet = "aster_l6", Teams = teams,
+		Assigned = { Pilot = "pilot_starter", Cabin = "cabin_starter", Security = "security_starter" },
+		Hangar = { Theme = "Porcelain", Showpiece = 0, Operations = 0 },
+		Settings = { Quality = "High", ReducedMotion = false, Volume = 0.55 },
+		SalaryDay = -1, RewardJournal = {}, BestScores = {}, Receipts = {}, SeasonXP = 0 }
+end
+
+function Domain.migrate(data: any, config: any): any
+	if type(data) ~= "table" then return Domain.newProfile(config) end
+	if type(data.Version) == "number" and data.Version > config.Schema then error("Newer save version") end
+	local default = Domain.newProfile(config)
+	for key, value in default do if data[key] == nil then data[key] = value end end
+	assert(type(data.Credits) == "number" and data.Credits == data.Credits and data.Credits >= 0, "Invalid saved credits")
+	data.Version = config.Schema
+	return data
+end
+
+function Domain.overall(skills: any): number
+	local sum, count = 0, 0
+	for _, value in skills do sum += value; count += 1 end
+	return math.floor(sum / math.max(1, count) + 0.5)
+end
+
+function Domain.crewTuning(profile: any): any
+	local cabin = profile.Teams[profile.Assigned.Cabin]
+	local pilot = profile.Teams[profile.Assigned.Pilot]
+	local security = profile.Teams[profile.Assigned.Security]
+	return {
+		Pilot = Domain.copy(pilot.Skills),
+		ServiceDelay = math.clamp(26 - (cabin.Skills.Speed - 60) * 0.25, 18, 28),
+		Patience = (cabin.Skills.Reading - 60) * 0.15 + (cabin.Skills.Composure - 60) * 0.1,
+		AutoServiceCredit = math.clamp(0.55 + (cabin.Skills.Catering - 60) * 0.006, 0.5, 0.72),
+		ArrivalAssistDelay = math.clamp(28 - (security.Skills.Logistics - 60) * 0.3, 20, 30),
+	}
+end
+
+function Domain.score(metrics: any, config: any): any
+	local weights = config.Scoring
+	local breakdown = {
+		{ Name = "Smoothness", Value = math.clamp(weights.Smoothness - math.floor(metrics.Rough * 0.3), 8, 25), Max = 25, Cause = "Abrupt controls and steep bank" },
+		{ Name = "Timing", Value = math.clamp(20 - math.floor(math.max(0, metrics.Elapsed - metrics.Target) / 15), 6, 20), Max = 20, Cause = "Time against the client schedule" },
+		{ Name = "Cabin service", Value = math.clamp(8 + metrics.Prepared * 3 + metrics.Served * 5 - metrics.Missed * 3, 5, 25), Max = 25, Cause = "Cabin preferences and live requests" },
+		{ Name = "Discretion", Value = math.clamp(metrics.Discretion, 4, 20), Max = 20, Cause = "Car, baggage and protected client path" },
+		{ Name = "Safety", Value = math.clamp(10 - metrics.GoArounds - metrics.HardLanding * 3, 4, 10), Max = 10, Cause = "Landing, gear and safe recovery" },
+	}
+	local score = 0
+	for _, row in breakdown do row.Value = math.floor(row.Value + 0.5); score += row.Value end
+	local multiplier = math.floor((0.55 + score / 100 * 0.75) * 100) / 100
+	return { Score = score, Breakdown = breakdown, Multiplier = multiplier,
+		Label = if score >= 90 then "Exceptional" elseif score >= 75 then "Distinguished" elseif score >= 60 then "Promising" else "Flight completed" }
+end
+
+function Domain.reward(profile: any, runId: string, result: any, role: string): boolean
+	if profile.RewardJournal[runId] then return false end
+	profile.RewardJournal[runId] = result.CompletedAt
+	profile.Credits += result.Payout
+	profile.XP += result.XP
+	profile.RoleXP[role] = (profile.RoleXP[role] or 0) + result.XP
+	profile.Reputation += math.floor(result.Score / 10)
+	profile.Tokens += 1
+	profile.Runs += 1
+	profile.SeasonXP += result.XP
+	for _, teamId in profile.Assigned do profile.Teams[teamId].Runs += 1 end
+	table.insert(profile.BestScores, result.Score)
+	table.sort(profile.BestScores, function(a: number, b: number) return a > b end)
+	while #profile.BestScores > 10 do table.remove(profile.BestScores) end
+	-- Runs cannot be replayed by clients. Bound the persisted dedup journal.
+	local entries: {any} = {}
+	for id, stamp in profile.RewardJournal do table.insert(entries, { id, stamp }) end
+	table.sort(entries, function(a: any, b: any) return a[2] > b[2] end)
+	for i = 65, #entries do profile.RewardJournal[entries[i][1]] = nil end
+	return true
+end
+
+function Domain.purchase(profile: any, action: string, id: string, config: any): (boolean, string)
+	if action == "Recruit" then
+		local team = config.Teams[id]
+		if not team or team.Price == 0 or profile.Teams[id] then return false, "Team unavailable or already owned" end
+		if profile.Credits < team.Price then return false, "More credits needed" end
+		profile.Credits -= team.Price
+		profile.Teams[id] = { Skills = Domain.copy(team.Skills), Runs = 0, Badges = {} }
+		return true, "Team recruited permanently"
+	elseif action == "Assign" then
+		local team = config.Teams[id]
+		if not team or not profile.Teams[id] then return false, "Recruit this team first" end
+		profile.Assigned[team.Category] = id
+		return true, "Assigned · salary shown in roster"
+	elseif action == "Upgrade" then
+		if id ~= "Showpiece" and id ~= "Operations" then return false, "Unknown upgrade" end
+		if profile.Hangar[id] >= 1 then return false, "Upgrade already owned" end
+		local cost = if id == "Showpiece" then config.Economy.HangarCost else config.Economy.ServiceCost
+		if profile.Credits < cost then return false, "More credits needed" end
+		profile.Credits -= cost; profile.Hangar[id] = 1
+		return true, if id == "Showpiece" then "Lounge and floor finish installed" else "Service facility installed · request grace +4 seconds"
+	end
+	return false, "Unknown purchase"
+end
+
+function Domain.train(profile: any, id: string, skill: string, config: any): (boolean, string)
+	local team = profile.Teams[id]
+	if not team or type(team.Skills[skill]) ~= "number" then return false, "Choose an owned team skill" end
+	if config.Teams[id].Category == "Security" and skill ~= "Logistics" then return false, "This skill's encounter is not enabled yet" end
+	if team.Skills[skill] >= config.Economy.SkillCap then return false, "Tier skill cap reached" end
+	if profile.Tokens < 1 or profile.Credits < config.Economy.TrainingCost then return false, "Needs 1 training token and 300 credits" end
+	profile.Tokens -= 1; profile.Credits -= config.Economy.TrainingCost
+	team.Skills[skill] = math.min(config.Economy.SkillCap, team.Skills[skill] + config.Economy.SkillStep)
+	return true, skill .. " improved"
+end
+
+function Domain.salary(profile: any, day: number, config: any): (boolean, number)
+	if profile.SalaryDay == day then return true, 0 end
+	local cost = 0
+	for _, id in profile.Assigned do cost += config.Teams[id].Salary end
+	if profile.Credits < cost then return false, cost end
+	profile.Credits -= cost; profile.SalaryDay = day
+	return true, cost
+end
+
+return Domain
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="6">
+        <Properties>
+          <string name="Name">FlightModel</string>
+          <string name="Source"><![CDATA[--!strict
+-- Guided-route arcade flight. All integration occurs on the server.
+local Flight = {}
+function Flight.new(config: any): any
+	return { Z = 0, X = 0, Altitude = config.GearHeight, Speed = 0, VerticalSpeed = 0,
+		Bank = 0, Pitch = 0, Throttle = 0, Autopilot = false, Gear = true, Phase = "Taxi", Rough = 0, GoArounds = 0 }
+end
+
+function Flight.goAround(f: any, config: any)
+	f.Z = config.ApproachStart - 800; f.Altitude = 210; f.X = 0; f.Speed = 95
+	f.VerticalSpeed = 0; f.Pitch = 0; f.Bank = 0; f.Throttle = 0.8
+	f.Gear = true; f.Autopilot = false; f.Phase = "Approach"; f.GoArounds += 1
+end
+
+function Flight.step(f: any, input: any, dt: number, c: any): string?
+	dt = math.clamp(dt, 0, 0.1)
+	local bank = math.clamp(input.Bank or 0, -1, 1)
+	local pitch = math.clamp(input.Pitch or 0, -1, 1)
+	f.Throttle = math.clamp(f.Throttle + (input.Throttle or 0) * dt * 0.35, 0, 1)
+	local targetSpeed = f.Throttle * 145
+	if f.Autopilot and f.Phase == "Cruise" then
+		targetSpeed = c.CruiseSpeed; f.Throttle = c.CruiseSpeed / 145
+		pitch = math.clamp((c.CruiseAltitude - f.Altitude) / (80 - ((f.Crew and f.Crew.Cruise or 60) - 60)), -0.5, 0.5)
+		bank = math.clamp(-f.X / (120 - ((f.Crew and f.Crew.Navigation or 60) - 60) * 2), -0.4, 0.4)
+	end
+	local oldSpeed = f.Speed
+	f.Speed += math.clamp(targetSpeed - f.Speed, -16 * dt, 12 * dt)
+	local safety = ((f.Crew and f.Crew.Safety or 60) - 60) * 0.003
+	local response = 2 + ((f.Crew and (if f.Phase == "Approach" then f.Crew.Landing else f.Crew.Takeoff) or 60) - 60) * 0.01
+	f.Bank += (bank * 30 * (1 - safety) - f.Bank) * math.min(1, dt * 2)
+	f.Pitch += (pitch * 16 - f.Pitch) * math.min(1, dt * response)
+	f.X = math.clamp(f.X + math.sin(math.rad(f.Bank)) * f.Speed * dt * 0.5, -c.MaxLateral, c.MaxLateral)
+	local airborne = f.Phase ~= "Taxi" or f.Altitude > c.GearHeight + 0.001 or (f.Speed >= c.RotateSpeed and pitch > 0.1)
+	if airborne then
+		local stallSink = math.max(0, 58 - f.Speed) * 0.7
+		local desiredVS = math.sin(math.rad(f.Pitch)) * f.Speed - stallSink
+		f.VerticalSpeed += (desiredVS - f.VerticalSpeed) * math.min(1, dt * 1.5)
+	else f.VerticalSpeed = 0 end
+	f.Altitude = math.clamp(f.Altitude + f.VerticalSpeed * dt, c.GearHeight, c.MaxAltitude)
+	f.Z += f.Speed * dt
+	if math.abs(f.Bank) > 24 or math.abs(f.Speed - oldSpeed) / math.max(dt, 0.001) > 14 then f.Rough += dt end
+	if f.Phase == "Taxi" and f.Altitude > 18 then f.Phase = "Climb"; return "Takeoff" end
+	if f.Phase == "Taxi" and (f.Z > 1800 or math.abs(f.X) > c.RunwayHalfWidth) then Flight.goAround(f, c); return "Recovery" end
+	if f.Phase == "Climb" and f.Altitude >= 180 then f.Phase = "Cruise"; return "Cruise" end
+	if f.Z >= c.ApproachStart and f.Phase ~= "Approach" then
+		f.Phase = "Approach"; f.Autopilot = false; return "Approach"
+	end
+	if f.Altitude <= c.GearHeight + 0.01 and f.Phase ~= "Taxi" then
+		if f.Z >= c.RunwayStart and f.Z <= c.RunwayEnd and math.abs(f.X) <= c.RunwayHalfWidth
+			and f.Speed >= c.LandingSpeedMin and f.Speed <= c.LandingSpeedMax and f.Gear and math.abs(f.Bank) < 12 then
+			f.Phase = "Landed"; return "Landed"
+		end
+		Flight.goAround(f, c); return "Recovery"
+	end
+	if f.Z > c.RunwayEnd then Flight.goAround(f, c); return "Recovery" end
+	return nil
+end
+
+return Flight
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="7">
+        <Properties>
+          <string name="Name">Palette</string>
+          <string name="Source"><![CDATA[return {
+	Porcelain = Color3.fromRGB(238, 236, 229), Graphite = Color3.fromRGB(23, 35, 42),
+	Champagne = Color3.fromRGB(206, 183, 132), Limestone = Color3.fromRGB(171, 166, 154),
+	Lagoon = Color3.fromRGB(102, 181, 196), Walnut = Color3.fromRGB(97, 71, 57),
+	Glass = Color3.fromRGB(49, 80, 92), Green = Color3.fromRGB(122, 194, 159),
+	Red = Color3.fromRGB(234, 125, 111), White = Color3.fromRGB(255, 245, 218),
+}
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="8">
+        <Properties>
+          <string name="Name">Protocol</string>
+          <string name="Source"><![CDATA[--!strict
+local Protocol = {}
+function Protocol.validPayload(data: any): boolean
+	if type(data) ~= "table" then return false end
+	local count = 0
+	for key, value in data do
+		count += 1
+		if count > 6 or type(key) ~= "string" or #key > 24 then return false end
+		if type(value) == "string" then if #value > 96 then return false end
+		elseif type(value) == "number" then if value ~= value or math.abs(value) > 1000000 then return false end
+		elseif type(value) ~= "boolean" then return false end
+	end
+	return true
+end
+function Protocol.validInput(data: any): boolean
+	if not Protocol.validPayload(data) then return false end
+	for _, key in { "Bank", "Pitch", "Throttle" } do
+		if type(data[key]) ~= "number" or data[key] ~= data[key] or math.abs(data[key]) > 1 then return false end
+	end
+	return true
+end
+return Protocol
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="9">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+    <Item class="Folder" referent="10">
+      <Properties>
+        <string name="Name">Server</string>
+      </Properties>
+      <Item class="ModuleScript" referent="11">
+        <Properties>
+          <string name="Name">Charters</string>
+          <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local Shared = game:GetService("ReplicatedStorage").Shared
+local Config = require(Shared.Config)
+local Domain = require(Shared.Domain)
+local FlightModel = require(Shared.FlightModel)
+local Profiles = require(script.Parent.Profiles)
+local World = require(script.Parent.World)
+local Charters = {}
+Charters.Sessions = {}
+local plots, offers, membership, slots = {}, {}, {}, {}
+local root = World.init()
+local remote
+local function send(player, kind, data) if player and player.Parent then remote:FireClient(player, kind, data) end end
+local function tell(run, text, cue)
+	for userId in run.Members do send(Players:GetPlayerByUserId(userId), "Notice", { Text = text, Cue = cue }) end
+end
+local function near(player, point, distance)
+	local c = player.Character; local r = c and c:FindFirstChild("HumanoidRootPart")
+	return r and (r.CFrame.Position - point).Magnitude <= (distance or Config.Limits.InteractionDistance)
+end
+local function movePlayer(player, cf)
+	local c = player and player.Character
+	if c then c:PivotTo(cf); local r = c:FindFirstChild("HumanoidRootPart"); if r then r.AssemblyLinearVelocity = Vector3.zero end end
+end
+local function lockControls(player, locked)
+	local character = player and player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid then humanoid.WalkSpeed = if locked then 0 else 18; humanoid.JumpPower = if locked then 0 else 50; humanoid.JumpHeight = if locked then 0 else 7.2; humanoid.AutoRotate = not locked end
+end
+local function profile(player) return Profiles.get(player.UserId) end
+
+function Charters.offers(player)
+	local list = offers[player.UserId]
+	if not list or list[1].Expires <= os.time() then
+		list = {}
+		for i, client in Config.Clients do
+			table.insert(list, { Id = HttpService:GenerateGUID(false), Client = i, Destination = "riviera", Jet = "aster_l6",
+				Expires = os.time() + Config.OfferLifetime, Fee = client.Fee, Range = 680, Seats = client.Party })
+		end
+		offers[player.UserId] = list
+	end
+	return list
+end
+
+local function publicRun(run)
+	if not run then return nil end
+	local members = {}
+	for id, info in run.Members do table.insert(members, { UserId = id, Name = info.Name, Role = info.Role, Paid = info.Paid }) end
+	return { Id = run.Id, Owner = run.Owner, Stage = run.Stage, Offer = run.Offer, Client = run.Client,
+		Prep = run.Prep, Members = members, Flight = run.Flight, Request = run.Request, Served = run.Metrics.Served,
+		Arrival = run.Arrival, Result = run.Result, JetName = run.Jet.Name, Pilot = run.Pilot, Error = run.Error,
+		Elapsed = math.floor(os.clock() - run.Started), Coop = run.Coop or 0, Seated = run.Seated }
+end
+
+function Charters.snapshot(player)
+	local run = Charters.Sessions[membership[player.UserId]]
+	local hosts = {}
+	for id, session in Charters.Sessions do
+		if session.Stage == "Preparation" and session.Owner ~= player.UserId then
+			table.insert(hosts, { Id = id, Owner = session.Owner, Name = session.Members[session.Owner].Name })
+		end
+	end
+	return { Profile = Profiles.public(player.UserId), Offers = Charters.offers(player), Run = publicRun(run), Hosts = hosts,
+		ServerTime = os.time(), Plot = plots[player.UserId] and plots[player.UserId].Index }
+end
+
+local function push(player) send(player, "State", Charters.snapshot(player)) end
+local function broadcast(run) for id in run.Members do local p = Players:GetPlayerByUserId(id); if p then push(p) end end end
+
+function Charters.addPlayer(player)
+	local index = 0; while slots[index] do index += 1 end; slots[index] = true
+	local plot = World.hangar(root, player.UserId, index); plots[player.UserId] = plot
+	local tail = Domain.tailNumber(player.UserId, 1)
+	plot.Jet = World.jet(plot.Model, plot.Origin, tail)
+	plot.Jet:SetAttribute("Owner", player.UserId)
+	World.door(plot.Jet, true); World.upgrade(plot, profile(player))
+	local function spawnCharacter(character)
+		character:WaitForChild("HumanoidRootPart")
+		task.wait(0.2)
+		local run = Charters.Sessions[membership[player.UserId]]
+		if run and (run.Stage == "Flight" or run.Stage == "Boarding") then
+			movePlayer(player, run.Jet:GetPivot() * CFrame.new(0, 4, -6))
+		else movePlayer(player, CFrame.new(plot.Origin + Vector3.new(-32, 4, 56))) end
+	end
+	player.CharacterAdded:Connect(spawnCharacter)
+	if player.Character then task.spawn(spawnCharacter, player.Character) end
+	player.RespawnLocation = plot.Spawn
+	push(player)
+end
+
+function Charters.accept(player, offerId)
+	if membership[player.UserId] then return false, "Finish or leave your current charter first" end
+	local offer
+	for _, o in Charters.offers(player) do if o.Id == offerId then offer = o end end
+	if not offer or offer.Expires <= os.time() then return false, "Offer expired · refresh your phone" end
+	local p = profile(player); local jet = Config.Jets[p.ActiveJet]
+	if not p.Jets[p.ActiveJet] or jet.Seats < offer.Seats or jet.Range < offer.Range then return false, "Aircraft is not eligible" end
+	local plot = plots[player.UserId]
+	local run = { Id = HttpService:GenerateGUID(false), Owner = player.UserId, Pilot = player.UserId, Stage = "Preparation", Offer = Domain.copy(offer),
+		Client = Config.Clients[offer.Client], Jet = plot.Jet, Plot = plot, Started = os.clock(),
+		Members = { [player.UserId] = { Name = player.DisplayName, Role = "Captain" } }, Prep = {}, Arrival = {},
+		Metrics = { Rough = 0, Elapsed = 0, Target = Config.Clients[offer.Client].Time, Prepared = 0, Served = 0, Missed = 0, Discretion = 4, GoArounds = 0, HardLanding = 0 },
+		Input = {}, LastInput = 0, RequestIndex = 0, Request = nil }
+	Charters.Sessions[run.Id] = run; membership[player.UserId] = run.Id; offers[player.UserId] = nil
+	run.NPC = World.npc(plot.Model, "Client", CFrame.new(plot.Origin + Vector3.new(-25, 3.2, 44)), Color3.fromRGB(126, 107, 91))
+	run.CrewNPC = World.npc(plot.Model, "CabinCrew", CFrame.new(plot.Origin + Vector3.new(-19, 3.2, 40)))
+	push(player); tell(run, "Set catering and cabin mood at the cabin atelier. Your client is waiting.", "Phone")
+	print("[PJCT] charter_started", run.Id)
+	return true
+end
+
+local function finish(run)
+	run.Stage = "Results"
+	run.Metrics.Elapsed = os.clock() - run.Started
+	run.Metrics.Rough = run.Flight.Rough; run.Metrics.GoArounds = run.Flight.GoArounds
+	local result = Domain.score(run.Metrics, Config)
+	result.BaseFee = run.Offer.Fee; result.Coop = run.Coop
+	result.Payout = math.floor(result.BaseFee * result.Multiplier * (1 + result.Coop))
+	result.XP = 50 + result.Score; result.CompletedAt = os.time()
+	run.Result = result
+	for id, member in run.Members do
+		task.spawn(function()
+			local ok, message = Profiles.transact(id, function(p)
+				Domain.reward(p, run.Id, result, member.Role)
+				return true, "Reward saved"
+			end)
+			member.Paid = ok
+			if not ok then run.Error = message end
+			local player = Players:GetPlayerByUserId(id); if player then push(player) end
+		end)
+	end
+	tell(run, "Charter complete · your rating shows every contribution.", "Results")
+	broadcast(run); print("[PJCT] charter_completed", run.Id, result.Score)
+end
+
+local function board(run)
+	run.Stage = "Boarding"; run.Started = os.clock()
+	local cf = run.Jet:GetPivot()
+	World.door(run.Jet, true)
+	World.animateNPC(run.NPC, { cf * CFrame.new(-10, -2.2, -10), cf * CFrame.new(-4, 3.2, -10), cf * CFrame.new(2.2, 3, 1.7) }, 1.6, function()
+		run.NPC:SetAttribute("Seated", true)
+		run.NPC:SetAttribute("Mood", "Comfortable")
+			World.poseSeated(run.NPC)
+	end)
+	World.animateNPC(run.CrewNPC, { cf * CFrame.new(-9, -2.2, -10), cf * CFrame.new(0, 3.2, -8) }, 1.8)
+	for id in run.Members do movePlayer(Players:GetPlayerByUserId(id), cf * CFrame.new(0, 4, -6)) end
+	tell(run, "Welcome aboard. Your client is taking their seat.", "Door")
+	broadcast(run)
+	task.delay(5.5, function()
+		if run.Stage ~= "Boarding" then return end
+		run.Stage = "Ready"; World.door(run.Jet, false)
+		tell(run, "Cabin secured. Start engines when ready.", "Door"); broadcast(run)
+	end)
+end
+
+function Charters.action(player, action, data)
+	local run = Charters.Sessions[membership[player.UserId]]
+	local p = profile(player)
+	if action == "Accept" then return Charters.accept(player, data.Id) end
+	if action == "Join" then
+		if run then return false, "Leave your current charter first" end
+		local host = Charters.Sessions[data.Id]
+		if not host or host.Stage ~= "Preparation" then return false, "This charter is no longer boarding a crew" end
+		local count = 0; for _ in host.Members do count += 1 end
+		if count >= Config.Limits.MaxCrew then return false, "Crew is full" end
+		host.Members[player.UserId] = { Name = player.DisplayName, Role = Config.Roles[count + 1] }
+		membership[player.UserId] = host.Id; movePlayer(player, CFrame.new(host.Plot.Origin + Vector3.new(-30, 4, 45)))
+		broadcast(host); return true, "Joined the crew · roles are flexible"
+	end
+	if action == "Recruit" or action == "Assign" or action == "Upgrade" or action == "Train" or action == "Theme" or action == "Badge" then
+		if run and run.Stage ~= "Preparation" then return false, "Manage your operation between flights" end
+		local ok, message = Profiles.transact(player.UserId, function(pr)
+			if action == "Train" then return Domain.train(pr, data.Id, data.Skill, Config) end
+			if action == "Theme" then
+				if data.Id ~= "Porcelain" and data.Id ~= "Graphite" then return false, "Unknown finish" end
+				pr.Hangar.Theme = data.Id; return true, "Hangar finish changed"
+			end
+			if action == "Badge" then
+				local team = pr.Teams[data.Id]; local info = Config.Teams[data.Id]
+				if not team or info.Category ~= "Cabin" or team.Runs < 5 or team.Badges.cabin_calm then return false, "Requires 5 completed charters with this cabin team" end
+				if pr.Credits < Config.Economy.BadgeCost then return false, "Needs 900 credits" end
+				pr.Credits -= Config.Economy.BadgeCost; team.Badges.cabin_calm = true; return true, "Unhurried equipped · +5 seconds of request patience"
+			end
+			return Domain.purchase(pr, action, data.Id, Config)
+		end)
+		World.upgrade(plots[player.UserId], profile(player)); push(player); return ok, message
+	end
+	if action == "Settings" then
+		local ok, msg = Profiles.transact(player.UserId, function(pr)
+			if data.Id == "Quality" and (data.Value == "High" or data.Value == "Low") then pr.Settings.Quality = data.Value
+			elseif data.Id == "Motion" and type(data.Value) == "boolean" then pr.Settings.ReducedMotion = data.Value
+			elseif data.Id == "Volume" and type(data.Value) == "number" then pr.Settings.Volume = math.clamp(data.Value, 0, 1)
+			else return false, "Invalid setting" end
+			return true, "Preference saved"
+		end)
+		push(player); return ok, msg
+	end
+	if not run then return false, "Accept a charter first" end
+	if action == "Role" and run.Stage == "Preparation" then
+		if not table.find(Config.Roles, data.Id) then return false, "Unknown role" end
+		run.Members[player.UserId].Role = data.Id; broadcast(run); return true, "Role selected · anyone may assist"
+	elseif action == "Prep" and run.Stage == "Preparation" then
+		if not near(player, run.Plot.Model.CateringStation.CFrame.Position) then return false, "Walk to the cabin atelier counter" end
+		if not table.find({ "Tea", "Coffee", "Water", "Warm", "Quiet", "Cool" }, data.Id) then return false, "Choose a cabin preference" end
+		if table.find({ "Tea", "Coffee", "Water" }, data.Id) then run.Prep.Catering = data.Id else run.Prep.Mood = data.Id end
+		broadcast(run); return true, "Cabin preference set"
+	elseif action == "Board" and run.Stage == "Preparation" then
+		if player.UserId ~= run.Owner then return false, "The host starts boarding" end
+		if not run.Prep.Catering or not run.Prep.Mood then return false, "Choose catering and mood at the atelier" end
+		if not near(player, run.Jet.CabinDoor.CFrame.Position, 22) then return false, "Walk to the aircraft boarding stair" end
+		local ok, salary = Profiles.transact(run.Owner, function(pr)
+			local paid, cost = Domain.salary(pr, math.floor(os.time() / Config.Economy.DaySeconds), Config)
+			return paid, if paid then cost else "Assigned salaries exceed your balance. Assign starter teams or earn credits before departure."
+		end)
+		if not ok then return false, salary end
+		run.Metrics.Prepared = (if run.Prep.Catering == run.Client.Preference then 1 else 0) + (if run.Prep.Mood == run.Client.Mood then 1 else 0)
+		local count = 0; for _ in run.Members do count += 1 end
+		run.Coop = if count > 1 then Config.Economy.CoopBonus else 0
+		board(run); return true, "Assigned team salary charged: " .. salary
+	elseif action == "Start" and run.Stage == "Ready" then
+		if player.UserId ~= run.Owner then return false, "The host starts the flight" end
+		run.Stage = "Flight"; run.Flight = FlightModel.new(Config.Flight); run.FlightStarted = os.clock()
+		run.Tuning = Domain.crewTuning(profile(player)); run.Flight.Crew = run.Tuning.Pilot
+		run.Destination = World.destination(run.Plot.Model, run.Plot.Origin, Config.Flight)
+		run.Seated = {}; for id in run.Members do run.Seated[id] = true end
+		World.weldNPC(run.NPC, run.Jet); World.weldNPC(run.CrewNPC, run.Jet)
+		tell(run, "Runway clear. Increase throttle, reach 72 knots, then hold climb.", "Turbine"); broadcast(run); return true
+	elseif action == "Cockpit" and run.Stage == "Flight" then
+		if run.Pilot ~= player.UserId and not run.Flight.Autopilot and Players:GetPlayerByUserId(run.Pilot) then return false, "Captain has control. Use cruise autopilot for handover." end
+		run.Pilot = player.UserId; run.Seated[player.UserId] = true
+		movePlayer(player, run.Jet:GetPivot() * CFrame.new(-2, 4, -13)); return true, "Flight controls engaged"
+	elseif action == "Autopilot" and run.Stage == "Flight" then
+		if player.UserId ~= run.Pilot or run.Flight.Phase ~= "Cruise" then return false, "Autopilot is available to the pilot during cruise" end
+		run.Flight.Autopilot = not run.Flight.Autopilot
+		return true, if run.Flight.Autopilot then "Cruise autopilot active · cabin is available" else "Manual control"
+	elseif action == "Cabin" and run.Stage == "Flight" then
+		if run.Pilot == player.UserId and not run.Flight.Autopilot then return false, "Engage cruise autopilot before leaving flight controls" end
+		run.Seated[player.UserId] = false; movePlayer(player, run.Jet:GetPivot() * CFrame.new(0, 4, -6)); return true, "Cabin mode · use the galley to serve"
+	elseif action == "Gear" and run.Stage == "Flight" then
+		if player.UserId ~= run.Pilot or run.Flight.Phase == "Taxi" then return false, "Gear control is available after takeoff" end
+		run.Flight.Gear = not run.Flight.Gear; World.gear(run.Jet, run.Flight.Gear); tell(run, if run.Flight.Gear then "Gear down" else "Gear up", "Gear"); return true
+	elseif action == "GoAround" and run.Stage == "Flight" then
+		if player.UserId ~= run.Pilot then return false, "Only the pilot can request a go-around" end
+		FlightModel.goAround(run.Flight, Config.Flight); World.gear(run.Jet, true); return true, "Safe go-around · align with the runway"
+	elseif action == "Service" and run.Stage == "Flight" then
+		if not run.Request then return false, "Your client is comfortable" end
+		if not near(player, run.Jet.Galley.CFrame.Position, 12) then return false, "Walk to the cabin galley" end
+		if run.Seated[player.UserId] then return false, "Switch to cabin mode to serve" end
+		run.Metrics.Served += 1; run.Request = nil; run.NPC:SetAttribute("Mood", "Delighted")
+		World.service(run)
+		tell(run, "Thank you. That was just what I needed.", "Service"); return true
+	elseif action == "Arrival" and run.Stage == "Arrival" then
+		if not table.find({ "Covered", "Open", "Baggage", "Umbrella", "Decoy" }, data.Id) then return false, "Unknown arrival action" end
+		if not near(player, run.Jet:GetPivot().Position, 65) then return false, "Stay with your client at the aircraft" end
+		if data.Id == "Covered" or data.Id == "Open" then run.Arrival.Car = data.Id else run.Arrival[data.Id] = true end
+		World.arrivalAction(run, data.Id)
+		broadcast(run); return true, "Arrival detail arranged"
+	elseif action == "Finish" and run.Stage == "Arrival" then
+		if not run.Arrival.Car or not run.Arrival.Baggage then return false, "Arrange a car and transfer the baggage first" end
+		run.Metrics.Discretion = 4 + (if run.Arrival.Car == "Covered" then 8 else 0) + (if run.Arrival.Umbrella then 4 else 0) + (if run.Arrival.Decoy then 4 else 0)
+		run.Stage = "Handover"; broadcast(run)
+		World.escort(run, function() if run.Stage == "Handover" then finish(run) end end)
+		return true, "Your client is being escorted to the car"
+	elseif action == "RetrySave" and run.Stage == "Results" then
+		local member = run.Members[player.UserId]
+		if member.Paid then return true, "Reward already saved" end
+		local ok, msg = Profiles.transact(player.UserId, function(pr) Domain.reward(pr, run.Id, run.Result, member.Role); return true, "Reward saved" end)
+		member.Paid = ok; push(player); return ok, msg
+	elseif action == "Return" and run.Stage == "Results" then
+		if not run.Members[player.UserId].Paid then return false, "Save pending. Retry reward save before returning." end
+		if player.UserId == run.Owner then
+			for _, member in run.Members do if not member.Paid then return false, "A crewmate's reward is still saving. Keep the charter open." end end
+		end
+		Charters.leave(player); return true, "Welcome back to your hangar"
+	elseif action == "Leave" and run.Stage == "Preparation" then Charters.leave(player); return true end
+	return false, "That action is unavailable in this phase"
+end
+
+function Charters.leave(player)
+	lockControls(player, false)
+	local run = Charters.Sessions[membership[player.UserId]]
+	membership[player.UserId] = nil
+	if run then
+		run.Members[player.UserId] = nil
+		if player.UserId == run.Owner or not next(run.Members) then
+			run.Stage = "Closed"
+			for id in run.Members do
+				membership[id] = nil; local guest = Players:GetPlayerByUserId(id)
+				if guest and plots[id] then lockControls(guest, false); movePlayer(guest, plots[id].Spawn.CFrame + Vector3.new(0, 4, 0)); push(guest) end
+			end
+			if run.NPC then run.NPC:Destroy() end; if run.CrewNPC then run.CrewNPC:Destroy() end
+			if run.Destination then run.Destination:Destroy() end
+			run.Jet:PivotTo(CFrame.new(run.Plot.Origin + Vector3.new(0, 5.4, 12)))
+			World.door(run.Jet, true); World.gear(run.Jet, true)
+			Charters.Sessions[run.Id] = nil
+		else broadcast(run) end
+	end
+	if plots[player.UserId] then movePlayer(player, plots[player.UserId].Spawn.CFrame + Vector3.new(0, 4, 0)) end
+	push(player)
+end
+
+function Charters.removePlayer(player)
+	Charters.leave(player)
+	local plot = plots[player.UserId]
+	if plot then slots[plot.Index] = nil; plot.Model:Destroy(); plots[player.UserId] = nil end
+	Profiles.release(player.UserId)
+end
+
+function Charters.input(player, input)
+	local run = Charters.Sessions[membership[player.UserId]]
+	if not run or run.Stage ~= "Flight" or run.Pilot ~= player.UserId or not run.Seated[player.UserId] then return end
+	if os.clock() - run.LastInput < 0.075 then return end
+	run.LastInput = os.clock(); run.Input = input
+end
+
+local function tickFlight(run, dt)
+	local f = run.Flight
+	if os.clock() - run.LastInput > 0.6 then run.Input = {} end
+	local event = FlightModel.step(f, run.Input, dt, Config.Flight)
+	if event then
+		if event == "Cruise" then tell(run, "Cruise established. Engage autopilot to visit your client.", "Service")
+		elseif event == "Approach" then
+			for id in run.Members do run.Seated[id] = true end
+			tell(run, "Approach. Autopilot disengaged. Gear down, speed 45–88, align with the centerline.", "Gear")
+		elseif event == "Recovery" then tell(run, "Safe go-around. Reduce bank and follow the landing guide.", "Gear"); World.gear(run.Jet, true)
+		elseif event == "Takeoff" then tell(run, "Positive climb. Raise gear and climb to 260 feet.", "Gear")
+		elseif event == "Landed" then
+			run.Metrics.HardLanding = if math.abs(f.VerticalSpeed) > 9 then 1 else 0
+			f.Z = Config.Flight.RunwayStart + 1050; f.X = -105; f.Altitude = Config.Flight.GearHeight; f.Pitch = 0; f.Bank = 0
+			run.Stage = "Arrival"; run.ArrivalStarted = os.clock(); run.Input = {}; World.door(run.Jet, true)
+			tell(run, "Welcome to Riviera. Arrange a covered car and protect your client's arrival.", "Touchdown")
+			broadcast(run)
+		end
+	end
+	local elapsed = os.clock() - run.FlightStarted
+	if run.Stage == "Flight" and f.Phase == "Cruise" and run.RequestIndex < 3 and elapsed > 35 + run.RequestIndex * 28 and not run.Request then
+		run.RequestIndex += 1
+		local pr = Profiles.get(run.Owner); local team = pr.Teams[pr.Assigned.Cabin]
+		local grace = (if team.Badges.cabin_calm then 5 else 0) + pr.Hangar.Operations * 4 + run.Tuning.Patience
+		run.Request = { Text = ({ "A fresh " .. string.lower(run.Client.Preference) .. ", please.", "Could you adjust the reading light?", "A light snack before arrival, please." })[run.RequestIndex],
+			Expires = os.time() + run.Client.Patience + grace, Started = os.clock() }
+		run.NPC:SetAttribute("Mood", "Waiting"); tell(run, run.Request.Text, "Service")
+	end
+	if run.Request then
+		if os.time() >= run.Request.Expires then run.Metrics.Missed += 1; run.Request = nil; tell(run, "The client request expired.", "Service")
+		elseif os.clock() - run.Request.Started > run.Tuning.ServiceDelay then
+			-- NPC team is competent: a partial contribution, never a perfect automatic score.
+			run.Metrics.Served += run.Tuning.AutoServiceCredit; run.Request = nil; World.service(run); tell(run, "Your cabin team handled the request. Manual service earns full credit.", "Service")
+		end
+	end
+end
+
+function Charters.start(eventRemote)
+	remote = eventRemote
+	local accumulator, snapshot, movement = 0, 0, 0
+	RunService.Heartbeat:Connect(function(dt)
+		accumulator += math.min(dt, 0.1); snapshot += dt; movement += dt
+		while accumulator >= Config.Flight.Step do
+			for _, run in Charters.Sessions do if run.Stage == "Flight" then tickFlight(run, Config.Flight.Step) end end
+			accumulator -= Config.Flight.Step
+		end
+		if movement >= 0.1 then
+			movement = 0
+			for _, run in Charters.Sessions do
+				if run.Flight and (run.Stage == "Flight" or run.Stage == "Arrival") then
+					local f = run.Flight; local old = run.Jet:GetPivot()
+					local target = CFrame.new(run.Plot.Origin + Vector3.new(f.X, f.Altitude, -220 - f.Z)) * CFrame.Angles(math.rad(f.Pitch), 0, math.rad(-f.Bank))
+					run.Jet.PrimaryPart.CFrame = target
+					local delta = target * old:Inverse()
+					for id in run.Members do
+						local p = Players:GetPlayerByUserId(id); local c = p and p.Character
+						if c then
+							lockControls(p, run.Seated and run.Seated[id] and run.Stage == "Flight")
+							if run.Seated and run.Seated[id] and run.Stage == "Flight" then
+								movePlayer(p, target * CFrame.new(if id == run.Pilot then -2 else 0, 4, if id == run.Pilot then -13 else -6))
+							elseif (c:GetPivot().Position - old.Position).Magnitude < 48 then movePlayer(p, delta * c:GetPivot())
+							else movePlayer(p, target * CFrame.new(0, 4, -6)) end
+						end
+					end
+				end
+			end
+		end
+		if snapshot >= 1 / Config.Flight.SnapshotHz then
+			snapshot = 0
+			for _, run in Charters.Sessions do
+				if run.Stage == "Flight" then
+					for id in run.Members do send(Players:GetPlayerByUserId(id), "Flight", publicRun(run)) end
+				elseif run.Stage == "Arrival" and not run.Arrival.Baggage and os.clock() - run.ArrivalStarted > run.Tuning.ArrivalAssistDelay then
+					run.Arrival.Baggage = true; World.arrivalAction(run, "Baggage"); tell(run, "Your security team has transferred the baggage.", "Service"); broadcast(run)
+				end
+			end
+		end
+	end)
+end
+return Charters
+
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="Script" referent="12">
+        <Properties>
+          <string name="Name">Main</string>
+          <token name="RunContext">0</token>
+          <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local MarketplaceService = game:GetService("MarketplaceService")
+local Config = require(ReplicatedStorage.Shared.Config)
+local Protocol = require(ReplicatedStorage.Shared.Protocol)
+local Profiles = require(script.Parent.Profiles)
+local Charters = require(script.Parent.Charters)
+
+local folder = Instance.new("Folder"); folder.Name = "Remotes"; folder.Parent = ReplicatedStorage
+local event = Instance.new("RemoteEvent"); event.Name = "Concierge"; event.Parent = folder
+local input = Instance.new("RemoteEvent"); input.Name = "FlightInput"; input.Parent = folder
+local buckets, locks, syncAt = {}, {}, {}
+
+local function rate(player, cost)
+	local t = os.clock(); local b = buckets[player.UserId] or { Time = t, Tokens = Config.Limits.RemoteBurst }
+	b.Tokens = math.min(Config.Limits.RemoteBurst, b.Tokens + (t - b.Time) * Config.Limits.RemoteRate); b.Time = t
+	buckets[player.UserId] = b
+	if b.Tokens < cost then return false end
+	b.Tokens -= cost; return true
+end
+Charters.start(event)
+event.OnServerEvent:Connect(function(player, action, data)
+	if type(action) ~= "string" or #action > 24 or not rate(player, 2) or not Profiles.get(player.UserId) then return end
+	if action == "Sync" then
+		if os.clock() - (syncAt[player.UserId] or -10) < 1 then return end
+		syncAt[player.UserId] = os.clock(); event:FireClient(player, "State", Charters.snapshot(player)); return
+	end
+	if not Protocol.validPayload(data) or locks[player.UserId] then return end
+	locks[player.UserId] = true
+	local success, ok, message = pcall(Charters.action, player, action, data)
+	locks[player.UserId] = nil
+	if not success then warn("[PJCT] action_error", action, ok); message = "That action could not finish. Please try again."; ok = false end
+	if message then event:FireClient(player, "Notice", { Text = message, Error = not ok }) end
+end)
+
+input.OnServerEvent:Connect(function(player, data)
+	if not rate(player, 0.25) or not Protocol.validInput(data) then return end
+	Charters.input(player, { Bank = data.Bank, Pitch = data.Pitch, Throttle = data.Throttle })
+end)
+
+local function add(player)
+	local ok, message = Profiles.load(player.UserId)
+	if not player.Parent then Profiles.release(player.UserId); return end
+	if not ok then player:Kick(message); return end
+	Charters.addPlayer(player)
+end
+Players.PlayerAdded:Connect(add)
+for _, player in Players:GetPlayers() do task.spawn(add, player) end
+Players.PlayerRemoving:Connect(function(player)
+	Charters.removePlayer(player); buckets[player.UserId] = nil; locks[player.UserId] = nil; syncAt[player.UserId] = nil
+end)
+game:BindToClose(function()
+	local pending = 0
+	for _, player in Players:GetPlayers() do pending += 1; task.spawn(function() Profiles.release(player.UserId); pending -= 1 end) end
+	local start = os.clock(); while pending > 0 and os.clock() - start < 25 do task.wait(0.1) end
+end)
+
+-- Product IDs are unconfigured. Never acknowledge an unknown receipt as granted.
+MarketplaceService.ProcessReceipt = function(_receipt)
+	return Enum.ProductPurchaseDecision.NotProcessedYet
+end
+print("[PJCT] server ready · " .. (if Profiles.isStudio() then "Studio session-only saves" else "durable profile store"))
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="13">
+        <Properties>
+          <string name="Name">Profiles</string>
+          <string name="Source"><![CDATA[--!strict
+local DataStoreService = game:GetService("DataStoreService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local Shared = game:GetService("ReplicatedStorage").Shared
+local Config = require(Shared.Config)
+local Domain = require(Shared.Domain)
+local Profiles = {}
+local store = if RunService:IsStudio() then nil else DataStoreService:GetDataStore(Config.DataStore)
+local session = game.JobId .. ":" .. HttpService:GenerateGUID(false)
+local cache: {[number]: any} = {}
+local busy: {[number]: boolean} = {}
+local studio = RunService:IsStudio()
+local LEASE = 180
+
+local function retry(callback: () -> any): (boolean, any)
+	local lastError
+	for attempt = 1, 4 do
+		local ok, value = pcall(callback)
+		if ok then return true, value end
+		lastError = value
+		if attempt < 4 then task.wait(2 ^ (attempt - 1)) end
+	end
+	return false, lastError
+end
+
+function Profiles.get(userId: number): any return cache[userId] end
+function Profiles.isStudio(): boolean return studio end
+
+function Profiles.load(userId: number): (boolean, string?)
+	if studio then cache[userId] = Domain.newProfile(Config); return true end
+	local ok, value = retry(function()
+		return store:UpdateAsync("p_" .. userId, function(old)
+			local data = Domain.migrate(old, Config)
+			if data.Lock and data.Lock.Session ~= session and data.Lock.Expires > os.time() then return nil end
+			data.Lock = { Session = session, Expires = os.time() + LEASE }
+			return data
+		end)
+	end)
+	if not ok or not value then return false, "Your save is unavailable or open in another server. Please rejoin shortly." end
+	cache[userId] = value
+	return true
+end
+
+-- Serialize and commit each economic mutation before reporting success.
+-- The transform must not yield or cause side effects: UpdateAsync may retry it.
+function Profiles.transact(userId: number, transform: (any) -> (boolean, any)): (boolean, any)
+	while busy[userId] do task.wait() end
+	if not cache[userId] then return false, "Profile is not ready" end
+	busy[userId] = true
+	local output, accepted = nil, false
+	local ok, value = retry(function()
+		local function apply(old)
+			if not old or (not studio and (not old.Lock or old.Lock.Session ~= session)) then return nil end
+			local nextData = Domain.copy(old)
+			accepted, output = transform(nextData)
+			if not accepted then return nil end
+			if not studio then nextData.Lock = { Session = session, Expires = os.time() + LEASE } end
+			return nextData
+		end
+		if studio then return apply(cache[userId]) end
+		return store:UpdateAsync("p_" .. userId, apply)
+	end)
+	if ok and value then cache[userId] = value end
+	busy[userId] = nil
+	if not ok then return false, "Save failed. Nothing has been confirmed. Try again." end
+	if not value then return false, output or "Save session changed. Rejoin to protect progress." end
+	return accepted, output
+end
+
+function Profiles.release(userId: number)
+	while busy[userId] do task.wait() end
+	busy[userId] = true
+	if cache[userId] and not studio then
+		retry(function()
+			return store:UpdateAsync("p_" .. userId, function(old)
+				if old and old.Lock and old.Lock.Session == session then old.Lock = nil; return old end
+				return nil
+			end)
+		end)
+	end
+	cache[userId] = nil; busy[userId] = nil
+end
+
+function Profiles.public(userId: number): any
+	local profile = cache[userId]
+	if not profile then return nil end
+	local result = Domain.copy(profile); result.Lock = nil; result.Receipts = nil; result.RewardJournal = nil
+	result.SessionOnly = studio
+	return result
+end
+
+task.spawn(function()
+	while task.wait(50) do
+		for userId in cache do
+			if not studio then
+				task.spawn(function()
+					local ok = Profiles.transact(userId, function() return true, "lease" end)
+					if not ok then
+						local player = game:GetService("Players"):GetPlayerByUserId(userId)
+						if player then player:Kick("Your save connection was interrupted. Rejoin to protect your progress.") end
+					end
+				end)
+			end
+		end
+	end
+end)
+return Profiles
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="14">
+        <Properties>
+          <string name="Name">World</string>
+          <string name="Source"><![CDATA[-- Original, deterministic production geometry. No toolbox scripts or external models.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local P = require(ReplicatedStorage.Shared.Palette)
+local World = {}
+
+local function model(name, parent)
+	local m = Instance.new("Model"); m.Name = name; m.Parent = parent; return m
+end
+local function part(parent, name, size, cf, color, material, shape)
+	local p = Instance.new(if shape == "Wedge" then "WedgePart" else "Part")
+	p.Name = name; p.Size = size; p.CFrame = cf; p.Color = color or P.Porcelain
+	p.Material = material or Enum.Material.SmoothPlastic; p.Anchored = true
+	p.TopSurface = Enum.SurfaceType.Smooth; p.BottomSurface = Enum.SurfaceType.Smooth
+	if shape == "Cylinder" then p.Shape = Enum.PartType.Cylinder elseif shape == "Ball" then p.Shape = Enum.PartType.Ball end
+	p.Parent = parent; return p
+end
+local function sign(parent, name, text, size, cf, color, background)
+	local p = part(parent, name, size, cf, background or P.Graphite)
+	local gui = Instance.new("SurfaceGui"); gui.Face = Enum.NormalId.Front; gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 34; gui.LightInfluence = 0; gui.Parent = p
+	local label = Instance.new("TextLabel"); label.Size = UDim2.fromScale(1, 1); label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamMedium; label.TextColor3 = color or P.Champagne; label.Text = text; label.TextScaled = true; label.Parent = gui
+	return p
+end
+local function lamp(parent, cf, size, color, range)
+	local p = part(parent, "Luminaire", size, cf, color or P.White, Enum.Material.Neon)
+	p.CanCollide = false
+	if range == 0 then return p end
+	local light = Instance.new("PointLight"); light.Color = color or P.White; light.Range = range or 18; light.Brightness = 0.7; light.Shadows = false; light.Parent = p
+	return p
+end
+local function prompt(p, action, text)
+	local a = Instance.new("ProximityPrompt"); a.Name = action; a.ActionText = text; a.ObjectText = "Aster Aviation"
+	a.HoldDuration = 0.35; a.MaxActivationDistance = 12; a.RequiresLineOfSight = false; a.Parent = p
+	p:SetAttribute("Action", action); return a
+end
+local function sofa(parent, cf, width)
+	part(parent, "LoungeSeat", Vector3.new(width, 1.1, 3.4), cf, P.Porcelain, Enum.Material.Fabric)
+	part(parent, "LoungeBack", Vector3.new(width, 2.5, 0.7), cf * CFrame.new(0, 1, 1.5), P.Porcelain, Enum.Material.Fabric)
+	for _, x in { -width / 2, width / 2 } do part(parent, "LoungeArm", Vector3.new(0.5, 1.8, 3.4), cf * CFrame.new(x, 0.4, 0), P.Walnut, Enum.Material.Wood) end
+end
+
+function World.init()
+	local preview = workspace:FindFirstChild("EditModePreview")
+	if preview then preview:Destroy() end
+	local root = Instance.new("Folder"); root.Name = "AsterWorld"; root.Parent = workspace
+	local lighting = game:GetService("Lighting")
+	for _, name in { "AsterAtmosphere", "AsterBloom", "AsterGrade" } do
+		local old = lighting:FindFirstChild(name); if old then old:Destroy() end
+	end
+	lighting.Ambient = Color3.fromRGB(100, 108, 120); lighting.OutdoorAmbient = Color3.fromRGB(143, 150, 163)
+	local atmosphere = Instance.new("Atmosphere"); atmosphere.Density = 0.25; atmosphere.Offset = 0.12
+	atmosphere.Color = Color3.fromRGB(201, 216, 228); atmosphere.Decay = Color3.fromRGB(228, 187, 140); atmosphere.Glare = 0.15; atmosphere.Haze = 1.5; atmosphere.Name = "AsterAtmosphere"; atmosphere.Parent = lighting
+	local bloom = Instance.new("BloomEffect"); bloom.Intensity = 0.12; bloom.Size = 20; bloom.Threshold = 1.8; bloom.Name = "AsterBloom"; bloom.Parent = lighting
+	local grade = Instance.new("ColorCorrectionEffect"); grade.Contrast = 0.08; grade.Saturation = -0.08; grade.TintColor = Color3.fromRGB(255, 245, 232); grade.Name = "AsterGrade"; grade.Parent = lighting
+	return root
+end
+
+function World.hangar(root, userId, index)
+	local m = model("Hangar_" .. userId, root)
+	local origin = Vector3.new(index * 3500, 0, 0)
+	local function at(x, y, z) return CFrame.new(origin + Vector3.new(x, y, z)) end
+	part(m, "Apron", Vector3.new(380, 1, 420), at(0, -0.5, -85), P.Limestone, Enum.Material.Concrete)
+	local coast = part(m, "CoastalRoute", Vector3.new(2800, 2, 17000), at(0, -12, -8000), P.Lagoon, Enum.Material.Glass)
+	coast.CanCollide = false; coast.Reflectance = 0.2
+	part(m, "Floor", Vector3.new(150, 0.4, 132), at(0, 0.05, 24), P.Limestone, Enum.Material.Marble).Reflectance = 0.12
+	part(m, "BackWall", Vector3.new(150, 42, 2), at(0, 21, 89), P.Porcelain, Enum.Material.Concrete)
+	for _, x in { -75, 75 } do
+		part(m, "SideWall", Vector3.new(2, 42, 132), at(x, 21, 24), P.Porcelain, Enum.Material.Concrete)
+		for z = -36, 84, 24 do
+			part(m, "SteelColumn", Vector3.new(1.4, 42, 2), at(x * 0.98, 21, z), P.Graphite, Enum.Material.Metal)
+		end
+	end
+	for z = -36, 84, 24 do
+		part(m, "RoofTruss", Vector3.new(150, 1.8, 1.5), at(0, 41, z), P.Graphite, Enum.Material.Metal)
+		for x = -60, 60, 30 do part(m, "TrussBrace", Vector3.new(32, 0.7, 0.7), at(x, 38, z) * CFrame.Angles(0, 0, math.rad(12)), P.Graphite, Enum.Material.Metal) end
+		lamp(m, at(0, 39.5, z), Vector3.new(92, 0.2, 0.5), P.White, 48)
+	end
+	part(m, "Roof", Vector3.new(152, 1, 134), at(0, 43, 24), P.Graphite, Enum.Material.Metal)
+	for _, x in { -66, 66 } do
+		part(m, "DoorCassette", Vector3.new(18, 39, 2.5), at(x, 19.5, -43), P.Graphite, Enum.Material.Metal)
+		for dx = -7, 7, 2 do part(m, "DoorFlute", Vector3.new(0.4, 38, 0.3), at(x + dx, 19.5, -44.5), P.Limestone, Enum.Material.Metal) end
+	end
+	sign(m, "Brand", "A S T E R   /   A V I A T I O N", Vector3.new(76, 5, 0.3), at(0, 29, 87.8))
+	sign(m, "HangarId", "01   /   PRIVATE CHARTER", Vector3.new(31, 2, 0.3), at(-48, 17, 87.6), P.Graphite, P.Porcelain)
+	for x = -60, 60, 12 do part(m, "FloorJoint", Vector3.new(0.05, 0.02, 125), at(x, 0.28, 24), P.Graphite) end
+	for z = -32, 84, 12 do part(m, "FloorJoint", Vector3.new(144, 0.02, 0.05), at(0, 0.29, z), P.Graphite) end
+	part(m, "TaxiLine", Vector3.new(0.35, 0.04, 210), at(0, 0.31, -10), P.Champagne)
+	for _, x in { -35, 35 } do part(m, "BayOutline", Vector3.new(0.22, 0.04, 75), at(x, 0.32, 17), P.Champagne) end
+	part(m, "BayOutline", Vector3.new(70, 0.04, 0.22), at(0, 0.32, 55), P.Champagne)
+	-- Glass concierge lounge, with clear entry and an aircraft sightline.
+	part(m, "LoungePlatform", Vector3.new(31, 0.6, 34), at(53, 0.5, 64), P.Walnut, Enum.Material.WoodPlanks)
+	local glass = part(m, "LoungeGlass", Vector3.new(0.25, 14, 25), at(37, 7, 70), P.Glass, Enum.Material.Glass); glass.Transparency = 0.65
+	sofa(m, at(55, 2, 78), 13)
+	sofa(m, at(65, 2, 65) * CFrame.Angles(0, math.pi / 2, 0), 9)
+	part(m, "LoungeTable", Vector3.new(8, 0.5, 4), at(54, 2.2, 69), P.Limestone, Enum.Material.Marble)
+	part(m, "TableBase", Vector3.new(3, 2, 2), at(54, 1, 69), P.Graphite, Enum.Material.Metal)
+	for _, x in { 42, 68 } do
+		part(m, "Planter", Vector3.new(3, 3, 3), at(x, 1.5, 82), P.Graphite)
+		part(m, "Topiary", Vector3.new(4, 7, 4), at(x, 6, 82), Color3.fromRGB(66, 93, 76), Enum.Material.Grass, "Ball")
+	end
+	local dispatch = sign(m, "Dispatch", "CONCIERGE\nCHARTER OFFERS", Vector3.new(9, 4, 1), at(-43, 5, 65))
+	prompt(dispatch, "Phone", "View charter offers")
+	local prep = part(m, "CateringStation", Vector3.new(10, 3, 5), at(-48, 1.5, 44), P.Graphite, Enum.Material.Metal)
+	part(m, "StoneCounter", Vector3.new(11, 0.4, 6), at(-48, 3.2, 44), P.Porcelain, Enum.Material.Marble)
+	sign(m, "PrepSign", "CABIN ATELIER", Vector3.new(11, 1.5, 0.2), at(-48, 5, 46.5))
+	prompt(prep, "Prep", "Prepare cabin")
+	for i = 1, 3 do
+		local bag = part(m, "Baggage", Vector3.new(1.6, 2.6, 1), at(-34 + i * 2, 1.3, 38), if i == 1 then P.Walnut else P.Graphite)
+		part(m, "BagHandle", Vector3.new(0.7, 0.15, 0.3), bag.CFrame * CFrame.new(0, 1.45, 0), P.Champagne, Enum.Material.Metal)
+	end
+	local spawn = Instance.new("SpawnLocation"); spawn.Name = "Spawn"; spawn.Size = Vector3.new(6, 1, 6); spawn.CFrame = at(-34, 0.8, 64)
+	spawn.Anchored = true; spawn.Transparency = 1; spawn.CanCollide = false; spawn.Neutral = false; spawn.Duration = 0; spawn.Parent = m
+	local runway = model("DepartureRunway", m)
+	part(runway, "Asphalt", Vector3.new(88, 0.4, 2100), at(0, -0.1, -1220), Color3.fromRGB(56, 62, 67), Enum.Material.Asphalt)
+	for z = -240, -2200, -80 do
+		part(runway, "Centerline", Vector3.new(1.5, 0.05, 28), at(0, 0.15, z), P.Porcelain)
+		for _, x in { -43, 43 } do lamp(runway, at(x, 0.4, z), Vector3.new(0.5, 0.3, 0.5), P.White, 0) end
+	end
+	return { Model = m, Origin = origin, Spawn = spawn, Index = index }
+end
+
+function World.jet(parent, origin, tailNumber)
+	local m = model("AsterL6", parent)
+	local function at(x, y, z) return CFrame.new(x, y, z) end
+	local root = part(m, "Hull", Vector3.new(7.6, 0.7, 40), at(0, 0, 0), P.Graphite)
+	m.PrimaryPart = root
+	-- Hollow elliptical shell with real port door opening. Nose points toward -Z.
+	for segment = 0, 7 do
+		local z = -14 + segment * 4
+		for i = 0, 15 do
+			local a = i * math.pi * 2 / 16
+			local x, y = math.cos(a) * 4.35, math.sin(a) * 4.0 + 3.2
+			local doorHole = segment == 1 and i >= 6 and i <= 9
+			if not doorHole then
+				local shell = part(m, "FuselagePanel", Vector3.new(1.85, 0.24, 4.06), at(x, y, z) * CFrame.Angles(0, 0, a + math.pi / 2), P.Porcelain, Enum.Material.Metal)
+				shell.Reflectance = 0.08
+			end
+		end
+	end
+	-- Continuous hollow lofts: no detached ellipsoid nose or solid cockpit obstruction.
+	local function triangle(name, a, b, c, color, material, transparent)
+		local ab, ac, bc = b - a, c - a, c - b
+		if ab:Dot(ab) > ac:Dot(ac) and ab:Dot(ab) > bc:Dot(bc) then c, a = a, c
+		elseif ac:Dot(ac) > bc:Dot(bc) then a, b = b, a end
+		ab, ac, bc = b - a, c - a, c - b
+		local right = ac:Cross(ab).Unit
+		local back = bc.Unit
+		local up = bc:Cross(right).Unit
+		local height = math.abs(ab:Dot(up))
+		for _, row in { { (a + b) / 2, right, back, math.abs(ab:Dot(back)) }, { (a + c) / 2, -right, -back, math.abs(ac:Dot(back)) } } do
+			local tile = part(m, name, Vector3.new(0.08, height, math.max(0.01, row[4])), CFrame.fromMatrix(row[1], row[2], up, row[3]), color, material, "Wedge")
+			tile.Reflectance = 0.06; tile.Transparency = transparent and 0.15 or 0
+		end
+	end
+	local function loft(name, rings)
+		for k = 1, #rings - 1 do
+			local a, b = rings[k], rings[k + 1]
+			for i = 0, 15 do
+				local theta = i * math.pi / 8
+				local nextTheta = theta + math.pi / 8
+				local function vertex(ring, angle) return Vector3.new(math.cos(angle) * ring[2], ring[4] + math.sin(angle) * ring[3], ring[1]) end
+				local a1, a2, b1, b2 = vertex(a, theta), vertex(a, nextTheta), vertex(b, theta), vertex(b, nextTheta)
+				local glazing = name == "Nose" and k == 1 and i >= 1 and i <= 6
+				local tileName = if glazing then "CanopyGlass" else name
+				local color, material = if glazing then P.Glass else P.Porcelain, if glazing then Enum.Material.Glass else Enum.Material.Metal
+				triangle(tileName, a1, a2, b1, color, material, glazing)
+				triangle(tileName, a2, b2, b1, color, material, glazing)
+			end
+		end
+	end
+	loft("Nose", { { -16, 4.35, 4, 3.2 }, { -19, 3.9, 3.35, 3.05 }, { -24, 2.35, 1.65, 2.5 }, { -29, 0.12, 0.12, 2.1 } })
+	loft("TailCone", { { 16, 4.35, 4, 3.2 }, { 22, 2.5, 2.5, 3.9 }, { 28, 0.15, 0.25, 4.5 } })
+	part(m, "Carpet", Vector3.new(7.7, 0.2, 33), at(0, 0.5, 1), P.Walnut, Enum.Material.Fabric)
+	for _, side in { -1, 1 } do
+		part(m, "LowerStripe", Vector3.new(0.11, 0.23, 32), at(side * 4.37, 2, 0), P.Champagne, Enum.Material.Metal)
+		for z = -3, 13, 5.4 do
+			local bezel = part(m, "WindowBezel", Vector3.new(0.19, 2.1, 2.7), at(side * 4.4, 4.2, z), P.Graphite, Enum.Material.Metal, "Ball")
+			bezel.CanCollide = false
+			local glass = part(m, "CabinWindow", Vector3.new(0.22, 1.65, 2.2), at(side * 4.5, 4.2, z), P.Glass, Enum.Material.Glass, "Ball")
+			glass.Transparency = 0.28; glass.CanCollide = false
+		end
+		-- Swept wings with wedge planform and narrow tips.
+		part(m, "WingRoot", Vector3.new(12, 0.5, 11), at(side * 8.8, 0.1, 6), P.Porcelain, Enum.Material.Metal)
+		part(m, "SweptWing", Vector3.new(0.38, 17, 7.4), at(side * 21, 0.7, 10) * CFrame.Angles(0, 0, -side * math.pi / 2), P.Porcelain, Enum.Material.Metal, "Wedge")
+		part(m, "Winglet", Vector3.new(0.35, 4.2, 3.4), at(side * 29, 2.6, 12) * CFrame.Angles(0, 0, math.rad(-side * 12)), P.Graphite, Enum.Material.Metal)
+		local flap = part(m, "Flap", Vector3.new(12, 0.18, 1.4), at(side * 18, 0.35, 14), P.Limestone, Enum.Material.Metal)
+		flap:SetAttribute("Side", side)
+		lamp(m, at(side * 29.1, 2.4, 11), Vector3.new(0.25, 0.25, 0.5), if side < 0 then P.Red else P.Green, 6)
+		-- Twin rear-mounted turbofans, dark intake and spinner.
+		part(m, "EnginePylon", Vector3.new(3.8, 0.5, 4), at(side * 5, 3.2, 17), P.Graphite, Enum.Material.Metal)
+		part(m, "Nacelle", Vector3.new(8.7, 3.5, 3.5), at(side * 6.6, 3.5, 17) * CFrame.Angles(0, math.pi / 2, 0), P.Porcelain, Enum.Material.Metal, "Cylinder")
+		part(m, "Intake", Vector3.new(0.2, 2.95, 2.95), at(side * 6.6, 3.5, 12.6) * CFrame.Angles(0, math.pi / 2, 0), P.Graphite, Enum.Material.Metal, "Cylinder")
+		part(m, "Spinner", Vector3.new(0.5, 0.8, 0.8), at(side * 6.6, 3.5, 12.4) * CFrame.Angles(0, math.pi / 2, 0), P.Limestone, Enum.Material.Metal, "Cylinder")
+		local exhaust = part(m, "Exhaust", Vector3.new(0.3, 2.5, 2.5), at(side * 6.6, 3.5, 21.5) * CFrame.Angles(0, math.pi / 2, 0), P.Graphite, Enum.Material.Metal, "Cylinder")
+		local attachment = Instance.new("Attachment"); attachment.Orientation = Vector3.new(0, 90, 0); attachment.Parent = exhaust
+		local fx = Instance.new("ParticleEmitter"); fx.Name = "EngineMist"; fx.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		fx.Color = ColorSequence.new(P.Porcelain); fx.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.93), NumberSequenceKeypoint.new(1, 1) })
+		fx.Size = NumberSequence.new(1.2); fx.Lifetime = NumberRange.new(0.25, 0.5); fx.Speed = NumberRange.new(5, 8); fx.Rate = 0; fx.Parent = attachment
+	end
+	part(m, "VerticalStabilizer", Vector3.new(0.7, 11, 6.4), at(0, 9, 22) * CFrame.Angles(math.rad(-15), 0, 0), P.Graphite, Enum.Material.Metal, "Wedge")
+	part(m, "HorizontalStabilizer", Vector3.new(21, 0.35, 5), at(0, 13.5, 23), P.Porcelain, Enum.Material.Metal)
+	-- Flight deck sits forward of the door, inside a glazed canopy.
+	for _, side in { -1, 1 } do
+		local windshield = part(m, "Windshield", Vector3.new(3.5, 2.7, 0.3), at(side * 1.8, 5.5, -17) * CFrame.Angles(math.rad(-28), math.rad(side * 17), 0), P.Glass, Enum.Material.Glass)
+		windshield.Transparency = 0.2
+		part(m, "FlightDeckSeat", Vector3.new(2.5, 0.7, 2.5), at(side * 2.1, 1.3, -13.5), P.Graphite, Enum.Material.Fabric)
+		part(m, "FlightDeckBack", Vector3.new(2.5, 2.9, 0.5), at(side * 2.1, 2.7, -12.5), P.Graphite, Enum.Material.Fabric)
+		sign(m, "Instrument", "ASTER\nSPD  ALT\nFLIGHT SYSTEM", Vector3.new(2.5, 1.3, 0.15), at(side * 2, 2.9, -16), P.Lagoon)
+	end
+	local captain = part(m, "Captain", Vector3.new(2, 0.3, 2), at(-2, 1.7, -13.8), P.Graphite)
+	prompt(captain, "Cockpit", "Take flight controls")
+	part(m, "Console", Vector3.new(1, 1.7, 4), at(0, 1.4, -14), P.Graphite, Enum.Material.Metal)
+	for i = 1, 4 do part(m, "ThrottleLever", Vector3.new(0.12, 0.65, 0.15), at(-0.38 + i * 0.15, 2.3, -13.5), P.Limestone, Enum.Material.Metal) end
+	-- Six individually upholstered seats with armrests, pedestal and stitched inset.
+	for row = 1, 3 do
+		for _, side in { -1, 1 } do
+			local cf = at(side * 2.25, 1.2, -4 + row * 5.7)
+			part(m, "SeatPedestal", Vector3.new(1.6, 0.7, 1.8), cf, P.Graphite, Enum.Material.Metal)
+			part(m, "SeatCushion", Vector3.new(2.45, 0.7, 2.7), cf * CFrame.new(0, 0.6, 0), P.Porcelain, Enum.Material.Fabric)
+			part(m, "SeatBack", Vector3.new(2.45, 3.3, 0.6), cf * CFrame.new(0, 2.1, 1.2) * CFrame.Angles(math.rad(-8), 0, 0), P.Porcelain, Enum.Material.Fabric)
+			part(m, "SeatHeadrest", Vector3.new(1.6, 0.8, 0.35), cf * CFrame.new(0, 3.25, 0.7), P.Limestone, Enum.Material.Fabric)
+			for _, arm in { -1, 1 } do part(m, "SeatArm", Vector3.new(0.2, 0.3, 2.4), cf * CFrame.new(arm * 1.23, 1.2, 0), P.Walnut, Enum.Material.Wood) end
+			part(m, "Belt", Vector3.new(2.3, 0.05, 0.17), cf * CFrame.new(0, 0.98, 0), P.Graphite, Enum.Material.Fabric)
+		end
+	end
+	for _, side in { -1, 1 } do
+		part(m, "CabinCove", Vector3.new(0.2, 0.14, 26), at(side * 2.8, 6.25, 3), P.Champagne, Enum.Material.Neon)
+		lamp(m, at(side * 2.8, 5.8, 4), Vector3.new(0.2, 0.15, 0.7), P.White, 14)
+		part(m, "ClubTable", Vector3.new(1.9, 0.18, 2), at(side * 3, 2.3, 4.3), P.Walnut, Enum.Material.Wood)
+	end
+	local galley = part(m, "Galley", Vector3.new(2.3, 2.6, 3), at(2.7, 1.9, -8), P.Walnut, Enum.Material.Wood)
+	part(m, "GalleyTop", Vector3.new(2.5, 0.18, 3.2), at(2.7, 3.3, -8), P.Limestone, Enum.Material.Marble)
+	prompt(galley, "Service", "Serve client request")
+	local tray = part(m, "CateringTray", Vector3.new(1.5, 0.12, 1.1), at(2.7, 3.47, -8), P.Champagne, Enum.Material.Metal)
+	part(m, "Cup", Vector3.new(0.55, 0.65, 0.55), tray.CFrame * CFrame.new(0, 0.4, 0), P.Porcelain, Enum.Material.SmoothPlastic, "Cylinder")
+	local door = part(m, "CabinDoor", Vector3.new(0.22, 5.8, 3.85), at(-4.45, 2.1, -10), P.Porcelain, Enum.Material.Metal)
+	prompt(door, "Board", "Board aircraft")
+	local stairs = model("Stairs", m)
+	for i = 1, 5 do part(stairs, "Step", Vector3.new(1.2, 0.3, 3.8), at(-4.7 - i * 0.95, 0.3 - i * 0.85, -10), P.Graphite, Enum.Material.Metal) end
+	for _, z in { -12, -8 } do part(stairs, "Rail", Vector3.new(6.3, 0.13, 0.13), at(-7.3, 1.1, z) * CFrame.Angles(0, 0, math.rad(39)), P.Champagne, Enum.Material.Metal) end
+	local gear = model("LandingGear", m)
+	for _, pos in { Vector3.new(0, -2.4, -18), Vector3.new(-4.8, -2.4, 5.5), Vector3.new(4.8, -2.4, 5.5) } do
+		part(gear, "Strut", Vector3.new(0.3, 3.7, 0.3), CFrame.new(pos), P.Limestone, Enum.Material.Metal)
+		part(gear, "Wheel", Vector3.new(1.3, 1.9, 1.9), CFrame.new(pos + Vector3.new(0, -1.5, 0)), P.Graphite, Enum.Material.SmoothPlastic, "Cylinder")
+	end
+	sign(m, "TailNumber", tailNumber, Vector3.new(0.1, 1, 6), at(-4.5, 3.8, 15) * CFrame.Angles(0, math.pi / 2, 0), P.Graphite, P.Porcelain)
+	m:PivotTo(CFrame.new(origin + Vector3.new(0, 5.4, 12)))
+	-- One anchored root with a welded assembly avoids replicating hundreds of part transforms each tick.
+	for _, p in m:GetDescendants() do
+		if p:IsA("BasePart") and p ~= root then
+			local joint = Instance.new("Motor6D"); joint.Name = "AssemblyJoint"; joint.Part0 = root; joint.Part1 = p
+			joint.C0 = root.CFrame:ToObjectSpace(p.CFrame); joint:SetAttribute("Rest", joint.C0); joint.Parent = p
+			p.Anchored = false; p.Massless = true
+		end
+	end
+	return m
+end
+
+function World.npc(parent, name, cf, uniform)
+	local m = model(name, parent)
+	local skin = Color3.fromRGB(190, 142, 108)
+	local root = part(m, "HumanoidRootPart", Vector3.new(2, 2, 1), cf, uniform or P.Graphite); root.Transparency = 1; root.CanCollide = false; m.PrimaryPart = root
+	part(m, "Torso", Vector3.new(1.65, 2, 0.85), cf, uniform or P.Graphite)
+	part(m, "Shirt", Vector3.new(0.45, 1.2, 0.05), cf * CFrame.new(0, 0.3, -0.45), P.Porcelain)
+	part(m, "Head", Vector3.new(1.25, 1.25, 1.15), cf * CFrame.new(0, 1.7, 0), skin, Enum.Material.SmoothPlastic, "Ball")
+	part(m, "Hair", Vector3.new(1.3, 0.5, 1.2), cf * CFrame.new(0, 2.22, 0.07), P.Walnut, Enum.Material.SmoothPlastic, "Ball")
+	for _, s in { -1, 1 } do
+		part(m, if s < 0 then "LeftArm" else "RightArm", Vector3.new(0.5, 1.8, 0.6), cf * CFrame.new(s * 1.1, -0.05, 0), uniform or P.Graphite)
+		part(m, "Hand", Vector3.new(0.48, 0.4, 0.55), cf * CFrame.new(s * 1.1, -1.1, 0), skin)
+		part(m, if s < 0 then "LeftLeg" else "RightLeg", Vector3.new(0.62, 1.9, 0.7), cf * CFrame.new(s * 0.47, -1.9, 0), P.Graphite)
+		part(m, "Shoe", Vector3.new(0.68, 0.35, 1.1), cf * CFrame.new(s * 0.47, -2.8, -0.12), P.Graphite)
+		part(m, "Eye", Vector3.new(0.09, 0.12, 0.06), cf * CFrame.new(s * 0.24, 1.8, -0.56), P.Graphite)
+	end
+	for _, p in m:GetDescendants() do if p:IsA("BasePart") then p.CanCollide = false end end
+	m:SetAttribute("Mood", "Ready")
+	return m
+end
+
+function World.animateNPC(npc, points, duration, done)
+	task.spawn(function()
+		local limbs = {}
+		for _, name in { "LeftArm", "RightArm", "LeftLeg", "RightLeg" } do
+			local limb = npc:FindFirstChild(name)
+			if limb then limbs[name] = npc:GetPivot():ToObjectSpace(limb.CFrame) end
+		end
+		for _, goal in points do
+			if not npc.Parent then return end
+			local start = npc:GetPivot(); local elapsed = 0
+			while elapsed < duration and npc.Parent do
+				elapsed += task.wait(); local alpha = math.min(elapsed / duration, 1)
+				local bob = math.sin(alpha * math.pi * 10) * 0.08
+				npc:PivotTo(start:Lerp(goal, alpha) * CFrame.new(0, bob, 0))
+				for name, rest in limbs do
+					local swing = math.sin(alpha * math.pi * 10) * 0.32 * (if string.find(name, "Left") then 1 else -1)
+					npc[name].CFrame = npc:GetPivot() * rest * CFrame.Angles(swing, 0, 0)
+				end
+			end
+			for name, rest in limbs do npc[name].CFrame = npc:GetPivot() * rest end
+		end
+		if done and npc.Parent then done() end
+	end)
+end
+
+function World.poseSeated(npc)
+	local cf = npc:GetPivot()
+	for _, side in { -1, 1 } do
+		local leg = npc:FindFirstChild(if side < 0 then "LeftLeg" else "RightLeg")
+		if leg then leg.CFrame = cf * CFrame.new(side * 0.47, -1.35, -0.6) * CFrame.Angles(-math.pi / 2, 0, 0) end
+	end
+end
+
+function World.service(run)
+	local tray = run.Jet.CateringTray
+	local motor = tray:FindFirstChild("AssemblyJoint")
+	if motor then
+		local rest = motor:GetAttribute("Rest")
+		local cup = run.Jet.Cup:FindFirstChild("AssemblyJoint")
+		local cupRest = cup and cup:GetAttribute("Rest")
+		TweenService:Create(motor, TweenInfo.new(1.2, Enum.EasingStyle.Sine), { C0 = CFrame.new(3, 2.5, 4.3) }):Play()
+		if cup then TweenService:Create(cup, TweenInfo.new(1.2), { C0 = CFrame.new(3, 2.5, 4.3) * rest:Inverse() * cupRest }):Play() end
+		task.delay(3, function()
+			if motor.Parent then TweenService:Create(motor, TweenInfo.new(1.2), { C0 = rest }):Play() end
+			if cup and cup.Parent then TweenService:Create(cup, TweenInfo.new(1.2), { C0 = cupRest }):Play() end
+		end)
+	end
+end
+
+function World.arrivalAction(run, action)
+	local cf = run.Jet:GetPivot()
+	local destination = run.Destination
+	if action == "Baggage" and not destination:FindFirstChild("TransferredBaggage") then
+		local bag = part(destination, "TransferredBaggage", Vector3.new(1.6, 2.6, 1), cf * CFrame.new(-10, -3, -10), P.Walnut)
+		TweenService:Create(bag, TweenInfo.new(2), { CFrame = destination.ArrivalCar.Body.CFrame * CFrame.new(-4, -0.5, 3) }):Play()
+	elseif action == "Umbrella" and not destination:FindFirstChild("Umbrella") then
+		part(destination, "Umbrella", Vector3.new(8, 0.4, 8), cf * CFrame.new(-12, 5, -10), P.Graphite, Enum.Material.SmoothPlastic, "Ball")
+		part(destination, "UmbrellaStem", Vector3.new(0.15, 7, 0.15), cf * CFrame.new(-12, 1.5, -10), P.Champagne, Enum.Material.Metal)
+	elseif action == "Decoy" then
+		for _, npc in destination:GetChildren() do
+			if npc.Name == "Photographer" then World.animateNPC(npc, { npc:GetPivot() * CFrame.new(0, 0, 30) }, 2) end
+		end
+	end
+end
+
+function World.escort(run, done)
+	for _, item in run.NPC:GetDescendants() do
+		if item:IsA("BasePart") then item.Anchored = true end
+		if item:IsA("WeldConstraint") then item:Destroy() end
+	end
+	local cf = run.Jet:GetPivot()
+	for _, side in { -1, 1 } do
+		run.NPC[if side < 0 then "LeftLeg" else "RightLeg"].CFrame = run.NPC:GetPivot() * CFrame.new(side * 0.47, -1.9, 0)
+	end
+	World.animateNPC(run.NPC, { cf * CFrame.new(-10, -2.2, -10), run.Destination.ArrivalCar.Body.CFrame * CFrame.new(5, 1.2, 0) }, 2, done)
+end
+
+function World.door(jet, open)
+	local door = jet:FindFirstChild("CabinDoor")
+	if door then
+		door.CanCollide = not open
+		local motor = door:FindFirstChild("AssemblyJoint")
+		if motor then
+			local rest = motor:GetAttribute("Rest")
+			TweenService:Create(motor, TweenInfo.new(0.8, Enum.EasingStyle.Sine), { C0 = if open then rest * CFrame.new(-2.8, -2.6, 0) * CFrame.Angles(0, 0, math.rad(-80)) else rest }):Play()
+		end
+	end
+	for _, p in jet.Stairs:GetChildren() do p.Transparency = if open then 0 else 1; p.CanCollide = open end
+	jet:SetAttribute("DoorOpen", open)
+end
+
+function World.gear(jet, extended)
+	for _, p in jet.LandingGear:GetChildren() do
+		local joint = p:FindFirstChild("AssemblyJoint")
+		if joint then TweenService:Create(joint, TweenInfo.new(0.7), { C0 = joint:GetAttribute("Rest") * CFrame.new(0, if extended then 0 else 4, 0) }):Play() end
+		p:SetAttribute("Extended", extended)
+		if extended then p.Transparency = 0 else task.delay(0.7, function() if p.Parent and not p:GetAttribute("Extended") then p.Transparency = 1 end end) end
+	end
+end
+
+function World.weldNPC(npc, jet)
+	for _, p in npc:GetDescendants() do
+		if p:IsA("BasePart") then
+			local joint = Instance.new("WeldConstraint"); joint.Part0 = jet.PrimaryPart; joint.Part1 = p; joint.Parent = p
+			p.Anchored = false; p.Massless = true
+		end
+	end
+end
+
+function World.upgrade(plot, profile)
+	plot.Model.Floor.Color = if profile.Hangar.Theme == "Graphite" then P.Graphite else P.Limestone
+	plot.Model.Floor.Reflectance = if profile.Hangar.Showpiece > 0 then 0.25 else 0.1
+	if profile.Hangar.Showpiece > 0 and not plot.Model:FindFirstChild("Sculpture") then
+		part(plot.Model, "Sculpture", Vector3.new(1.5, 8, 1.5), CFrame.new(plot.Origin + Vector3.new(49, 5, 58)) * CFrame.Angles(0.2, 0, 0.4), P.Champagne, Enum.Material.Metal)
+	end
+	if profile.Hangar.Operations > 0 and not plot.Model:FindFirstChild("ServiceFacility") then
+		sign(plot.Model, "ServiceFacility", "SERVICE ATELIER\nPRIORITY PREPARATION", Vector3.new(14, 4, 1), CFrame.new(plot.Origin + Vector3.new(-53, 6, 73)))
+	end
+end
+
+function World.destination(parent, origin, config)
+	local m = model("Riviera", parent)
+	local z = -config.RunwayStart - 220
+	local function at(x, y, dz) return CFrame.new(origin + Vector3.new(x, y, z + dz)) end
+	part(m, "Sea", Vector3.new(2200, 3, 2600), at(250, -9, 0), P.Lagoon, Enum.Material.Glass).Reflectance = 0.25
+	part(m, "Island", Vector3.new(220, 8, 1900), at(0, -4, -560), P.Limestone, Enum.Material.Rock)
+	part(m, "Runway", Vector3.new(88, 0.3, 1700), at(0, 0, -640), Color3.fromRGB(54, 62, 67), Enum.Material.Asphalt)
+	for dz = 80, -1480, -80 do
+		part(m, "Centerline", Vector3.new(1.8, 0.06, 28), at(0, 0.2, dz), P.Porcelain)
+		for _, x in { -43, 43 } do lamp(m, at(x, 0.5, dz), Vector3.new(0.6, 0.3, 0.6), P.White, 0) end
+	end
+	for x = -30, 30, 10 do part(m, "Threshold", Vector3.new(5, 0.07, 55), at(x, 0.25, 55), P.Porcelain) end
+	for i = 1, 22 do
+		local x = 180 + (i % 5) * 62; local dz = 200 - math.floor(i / 5) * 150
+		local height = 20 + (i * 17) % 65
+		part(m, "Waterfront", Vector3.new(40, height, 48), at(x, height / 2 - 2, dz), if i % 3 == 0 then P.Limestone else P.Porcelain, Enum.Material.Concrete)
+		for floor = 8, height - 3, 9 do
+			part(m, "Terrace", Vector3.new(43, 1, 52), at(x, floor, dz), P.Porcelain)
+			part(m, "Glazing", Vector3.new(40.1, 4, 48.1), at(x, floor + 3, dz), P.Glass, Enum.Material.Glass)
+		end
+	end
+	for i = 1, 9 do
+		part(m, "CoastalMountain", Vector3.new(500, 200 + i * 20, 500), at(600 + i * 150, 20, -i * 200), Color3.fromRGB(124, 144, 125), Enum.Material.Rock, "Ball")
+	end
+	part(m, "ArrivalApron", Vector3.new(160, 0.5, 180), at(-115, -0.1, -1050), P.Limestone, Enum.Material.Concrete)
+	part(m, "ArrivalCanopy", Vector3.new(44, 0.5, 36), at(-154, 13, -1050), P.Porcelain, Enum.Material.Metal)
+	for _, dx in { -173, -135 } do part(m, "CanopyPier", Vector3.new(0.8, 13, 0.8), at(dx, 6.5, -1050), P.Champagne, Enum.Material.Metal) end
+	sign(m, "ArrivalBrand", "R I V I E R A\nPRIVATE TERMINAL", Vector3.new(30, 4, 0.3), at(-151, 8, -1066))
+	local car = model("ArrivalCar", m)
+	part(car, "Body", Vector3.new(6, 2.3, 13), at(-151, 2, -1048), P.Graphite, Enum.Material.Metal)
+	part(car, "Cabin", Vector3.new(5.6, 2, 7), at(-151, 4, -1048), P.Glass, Enum.Material.Glass)
+	for _, dx in { -154, -148 } do for _, dz in { -1044, -1052 } do part(car, "Wheel", Vector3.new(0.8, 2.6, 2.6), at(dx, 1.3, dz), P.Graphite, Enum.Material.SmoothPlastic, "Cylinder") end end
+	for i = 1, 3 do
+		local npc = World.npc(m, "Photographer", at(-178 - i * 3, 3.2, -1020))
+		local camera = part(npc, "PressCamera", Vector3.new(1.1, 0.65, 0.7), npc:GetPivot() * CFrame.new(0, 0.7, -1), P.Graphite)
+		lamp(npc, camera.CFrame * CFrame.new(0, 0.3, -0.4), Vector3.new(0.3, 0.2, 0.1), P.White, 0)
+	end
+	return m
+end
+
+return World
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="15">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+      <float name="CameraMaxZoomDistance">100</float>
+      <float name="CharacterWalkSpeed">18</float>
+    </Properties>
+    <Item class="StarterPlayerScripts" referent="16">
+      <Properties>
+        <string name="Name">StarterPlayerScripts</string>
+      </Properties>
+      <Item class="Folder" referent="17">
+        <Properties>
+          <string name="Name">Client</string>
+        </Properties>
+        <Item class="ModuleScript" referent="18">
+          <Properties>
+            <string name="Name">Concierge</string>
+            <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
+local Shared = game:GetService("ReplicatedStorage").Shared
+local Config = require(Shared.Config)
+local Domain = require(Shared.Domain)
+local D = require(script.Parent.Design)
+local P = D.P
+local Concierge = {}
+local player = Players.LocalPlayer
+local gui, phone, content, status, account, tabs, closeButton, viewTitle, hint, toast
+local page, snapshot, send = "Charters", nil, nil
+local expiryLabels = {}
+local function credits(n) return string.format("%s CR", tostring(math.floor(n or 0))) end
+local function action(name, data) send(name, data or {}) end
+local function text(parent, value, size, color, height, font) return D.text(parent, value, size or 14, color, height, font) end
+
+local function cardTitle(parent, eyebrow, title, sub)
+	text(parent, eyebrow, 11, P.Champagne, 18, Enum.Font.RobotoMono)
+	text(parent, title, 24, P.Porcelain, 32, Enum.Font.GothamBold)
+	if sub then text(parent, sub, 13, P.Lagoon, 30) end
+end
+
+local function charterPage()
+	local run = snapshot.Run
+	if run then
+		local c = D.card(content)
+		cardTitle(c, string.upper(run.Stage) .. "  /  ASTER L6", run.Client.Name, run.Client.Title)
+		text(c, "ASTER BASE  ─────────  RVA\nMonaco · Riviera", 17, P.Porcelain, 48)
+		text(c, credits(run.Offer.Fee) .. " base  ·  " .. run.Client.Party .. " guests\nCo-op: +10% with a crew · each player receives a full award", 13, P.Lagoon, 46)
+		D.rule(c)
+		if run.Stage == "Preparation" then
+			text(c, "CLIENT BRIEF", 11, P.Champagne)
+			text(c, run.Client.Preference .. " catering  /  " .. run.Client.Mood .. " cabin\nCovered car · discretion matters", 15, P.Porcelain, 46)
+			text(c, "Walk to the cabin atelier, then choose preferences below. Board at the port-side stair.", 14, P.Porcelain, 52)
+			for _, group in { { "Tea", "Coffee", "Water" }, { "Warm", "Quiet", "Cool" } } do
+				for _, option in group do
+					local selected = run.Prep.Catering == option or run.Prep.Mood == option
+					D.button(c, (if selected then "✓  " else "") .. option, function() action("Prep", { Id = option }) end, selected)
+				end
+			end
+			local salary = 0
+			for _, id in snapshot.Profile.Assigned do salary += Config.Teams[id].Salary end
+			text(c, "Assigned salary: " .. credits(salary) .. " / game day (20 min). Charged once before boarding. Benched teams cost nothing.", 12, P.Lagoon, 54)
+			D.button(c, "Board at aircraft", function() action("Board") end, true)
+			D.button(c, "Leave charter", function() action("Leave") end)
+		elseif run.Stage == "Boarding" then
+			text(c, "Your client is boarding. The crew is securing the cabin.", 16, P.Porcelain, 60)
+		elseif run.Stage == "Ready" then
+			text(c, "Runway departure\nE / Q throttle · ↑ / ↓ pitch · ← / → bank\nGamepad: stick + triggers\nTouch flight controls appear after engine start.", 14, P.Porcelain, 110)
+			D.button(c, "Start engines · take runway", function() action("Start"); phone.Visible = false end, true)
+		elseif run.Stage == "Flight" then
+			text(c, "Fly the departure, then engage cruise autopilot to serve your client. Autopilot disengages for approach.", 16, P.Porcelain, 84)
+			D.button(c, "Return to flight", function() phone.Visible = false end, true)
+		elseif run.Stage == "Arrival" then
+			text(c, "A quiet arrival", 20, P.Porcelain, 30)
+			text(c, "Arrange the car and baggage, then protect your client's path from photographers.", 14, P.Lagoon, 56)
+			for _, opt in { { "Covered", "Covered car · sheltered path" }, { "Open", "Open apron car · exposed path" }, { "Baggage", "Transfer baggage" }, { "Umbrella", "Escort with umbrella" }, { "Decoy", "Direct photographers to decoy" } } do
+				local selected = run.Arrival.Car == opt[1] or run.Arrival[opt[1]]
+				D.button(c, (if selected then "✓  " else "") .. opt[2], function() action("Arrival", { Id = opt[1] }) end, selected)
+			end
+			D.button(c, "Complete the handover", function() action("Finish") end, true)
+		elseif run.Stage == "Handover" then
+			text(c, "Your client is being escorted to the car. The concierge is preparing your result.", 16, P.Porcelain, 80)
+		elseif run.Stage == "Results" then
+			Concierge.results(c, run)
+		end
+		return
+	end
+	text(content, "YOUR NEXT DEPARTURE", 11, P.Champagne, 20, Enum.Font.RobotoMono)
+	text(content, "A remarkable journey\nstarts with a call.", 25, P.Porcelain, 68, Enum.Font.GothamBold)
+	for _, offer in snapshot.Offers do
+		local client = Config.Clients[offer.Client]; local c = D.card(content)
+		cardTitle(c, "RIVIERA  /  PRIVATE CHARTER", client.Name, client.Title)
+		text(c, "AST  ━━━━━━━━━━━━━  RVA", 18, P.Champagne, 30, Enum.Font.RobotoMono)
+		text(c, client.Party .. " guests   /   680 nm   /   ~8 min charter", 13, P.Porcelain, 28)
+		text(c, credits(offer.Fee), 26, P.Porcelain, 34, Enum.Font.GothamBold)
+		text(c, "Base fee × your rating · +10% with friends", 12, P.Lagoon)
+		local label = text(c, "", 12, P.Champagne)
+		table.insert(expiryLabels, { Label = label, Expires = offer.Expires })
+		D.button(c, "Accept charter", function() action("Accept", { Id = offer.Id }) end, true)
+	end
+	D.button(content, "Refresh offers", function() action("Sync") end)
+end
+
+function Concierge.results(c, run)
+	local result = run.Result
+	if not result then return end
+	text(c, result.Label, 26, P.Champagne, 38, Enum.Font.GothamBold)
+	text(c, tostring(result.Score) .. " / 100", 40, P.Porcelain, 54, Enum.Font.RobotoMono)
+	for _, row in result.Breakdown do
+		text(c, row.Name .. "    " .. row.Value .. " / " .. row.Max, 15, P.Porcelain)
+		local rail = D.make("Frame", { Size = UDim2.new(1, 0, 0, 4), BackgroundColor3 = P.Graphite, BorderSizePixel = 0 }, c)
+		D.make("Frame", { Size = UDim2.fromScale(row.Value / row.Max, 1), BackgroundColor3 = P.Champagne, BorderSizePixel = 0 }, rail)
+		text(c, row.Cause, 11, P.Lagoon, 26)
+	end
+	D.rule(c)
+	text(c, credits(result.Payout), 30, P.Champagne, 44, Enum.Font.GothamBold)
+	text(c, credits(result.BaseFee) .. " × " .. result.Multiplier .. " rating × " .. (1 + result.Coop) .. " crew\n+" .. result.XP .. " XP  ·  +1 training token", 13, P.Porcelain, 46)
+	local paid = false; for _, m in run.Members do if m.UserId == player.UserId then paid = m.Paid end end
+	text(c, if paid then (if snapshot.Profile.SessionOnly then "Saved for this Studio session" else "Progress saved") else "Reward save pending · stay in this session", 13, if paid then P.Green else P.Red, 34)
+	D.button(c, if paid then "Return to your hangar" else "Retry reward save", function() action(if paid then "Return" else "RetrySave") end, true)
+end
+
+local function crewPage()
+	text(content, "PEOPLE MAKE THE JOURNEY", 11, P.Champagne, 20, Enum.Font.RobotoMono)
+	text(content, "Your crew", 28, nil, 42, Enum.Font.GothamBold)
+	local pr = snapshot.Profile
+	if snapshot.Run then
+		local c = D.card(content); text(c, "Flight roles · anyone can assist", 18)
+		for _, member in snapshot.Run.Members do text(c, member.Name .. " · " .. member.Role, 14) end
+		if snapshot.Run.Stage == "Preparation" then
+			for _, role in Config.Roles do D.button(c, role, function() action("Role", { Id = role }) end) end
+		end
+	end
+	local ids = {}; for id in pr.Teams do table.insert(ids, id) end; table.sort(ids)
+	for _, id in ids do
+		local info, owned = Config.Teams[id], pr.Teams[id]; local c = D.card(content)
+		cardTitle(c, string.upper(info.Category) .. "  /  " .. info.Grade, info.Name)
+		text(c, Domain.overall(owned.Skills) .. " overall · " .. credits(info.Salary) .. " per game day", 15, P.Champagne, 34)
+		text(c, "Skills have equal weight. Training costs 300 CR + 1 token for +2, capped at 85.", 12, P.Lagoon, 46)
+		text(c, if info.Category == "Cabin" then "Speed: NPC service timing. Reading and composure: client patience. Catering: NPC service quality."
+			elseif info.Category == "Pilot" then "Takeoff and landing: pitch response. Safety: bank damping. Cruise and navigation: autopilot tracking."
+			else "Logistics: automatic baggage timing. Other security skills are reserved for expanded encounters.", 12, P.Lagoon, 64)
+		local skills = {}; for skill in owned.Skills do table.insert(skills, skill) end; table.sort(skills)
+		for _, skill in skills do
+			local implemented = info.Category ~= "Security" or skill == "Logistics"
+			D.button(c, skill .. "  " .. owned.Skills[skill] .. (if implemented then "   /   Train +2" else "  ·  expansion pending"), function() action("Train", { Id = id, Skill = skill }) end, false, implemented)
+		end
+		local assigned = pr.Assigned[info.Category] == id
+		D.button(c, if assigned then "✓ Assigned" else "Assign · " .. credits(info.Salary) .. "/day", function() action("Assign", { Id = id }) end, assigned)
+		if info.Category == "Cabin" then
+			text(c, "Unhurried badge · " .. owned.Runs .. "/5 charters\n+5 seconds client patience · 900 CR · one badge slot", 12, P.Lagoon, 48)
+			D.button(c, if owned.Badges.cabin_calm then "✓ Unhurried equipped" else "Unlock Unhurried", function() action("Badge", { Id = id }) end, false, not owned.Badges.cabin_calm)
+		end
+	end
+	local c = D.card(content); text(c, "Join an open charter", 20)
+	if #snapshot.Hosts == 0 then text(c, "No crews waiting in this server. Friends can join your charter before boarding.", 14, P.Lagoon, 62) end
+	for _, host in snapshot.Hosts do D.button(c, "Join " .. host.Name, function() action("Join", { Id = host.Id }); page = "Charters" end) end
+end
+
+local function hangarPage()
+	local pr = snapshot.Profile
+	local c = D.card(content); cardTitle(c, "YOUR AIRCRAFT", "Aster L6", "Light jet · six passenger seats")
+	text(c, "2,100 nm range  /  1,300 fuel\n88 handling  /  72 comfort", 16, P.Porcelain, 54)
+	text(c, "Your starter is eligible for every available Riviera charter.", 13, P.Lagoon, 44)
+	local show = D.card(content); cardTitle(show, "SHOWPIECE", "A space of your own")
+	text(show, "Finishes and display pieces change appearance. Charter scores come from your service and flying.", 14, P.Lagoon, 58)
+	for _, theme in { "Porcelain", "Graphite" } do D.button(show, theme .. " finish · free", function() action("Theme", { Id = theme }) end, pr.Hangar.Theme == theme) end
+	D.button(show, if pr.Hangar.Showpiece > 0 then "✓ Gallery finish installed" else "Gallery finish + sculpture · 1,400 CR", function() action("Upgrade", { Id = "Showpiece" }) end, false, pr.Hangar.Showpiece == 0)
+	local ops = D.card(content); cardTitle(ops, "OPERATIONS", "Service atelier")
+	text(ops, "Cabin preparation facility. Clients allow 4 extra seconds for each request.", 14, P.Lagoon, 52)
+	D.button(ops, if pr.Hangar.Operations > 0 then "✓ Atelier installed" else "Install atelier · 1,800 CR", function() action("Upgrade", { Id = "Operations" }) end, true, pr.Hangar.Operations == 0)
+end
+
+local function storePage()
+	text(content, "RECRUITMENT  /  GUARANTEED OFFERS", 11, P.Champagne, 24, Enum.Font.RobotoMono)
+	text(content, "Build your reputation.", 24, nil, 42, Enum.Font.GothamBold)
+	text(content, "Permanent teams. Visible prices. No random rewards. Standard recruitment remains available every day.", 14, P.Lagoon, 62)
+	local ids = { "cabin_silk", "pilot_horizon", "security_velvet" }
+	local featured = ids[(math.floor(os.time() / 86400) % #ids) + 1]
+	for _, id in ids do
+		local info = Config.Teams[id]; local c = D.card(content)
+		cardTitle(c, (if id == featured then "TODAY'S SPOTLIGHT  /  " else "") .. string.upper(info.Category), info.Name)
+		text(c, info.Grade .. " · " .. Domain.overall(info.Skills) .. " overall\nSalary " .. credits(info.Salary) .. " / 20-minute game day", 14, P.Champagne, 52)
+		local statLines = {}; for skill, value in info.Skills do table.insert(statLines, skill .. " " .. value) end; table.sort(statLines)
+		text(c, table.concat(statLines, "  ·  "), 12, P.Porcelain, 54)
+		D.button(c, if snapshot.Profile.Teams[id] then "✓ Owned permanently" else "Recruit · " .. credits(info.Price), function() action("Recruit", { Id = id }) end, true, not snapshot.Profile.Teams[id])
+	end
+	local c = D.card(content); text(c, "Credit purchases", 20); text(c, "Unavailable in this development build. Earn credits by flying charters.", 14, P.Lagoon, 56)
+	D.button(c, "Robux purchases unavailable", function() end, false, false)
+end
+
+local function settingsPage()
+	local c = D.card(content); cardTitle(c, "MAKE YOURSELF COMFORTABLE", "Preferences")
+	local prefs = snapshot.Profile.Settings
+	D.button(c, "Quality: " .. prefs.Quality .. " · toggle", function() action("Settings", { Id = "Quality", Value = if prefs.Quality == "High" then "Low" else "High" }) end)
+	D.button(c, "Reduced motion: " .. (if prefs.ReducedMotion then "On" else "Off"), function() action("Settings", { Id = "Motion", Value = not prefs.ReducedMotion }) end)
+	D.button(c, "Sound: " .. (if prefs.Volume == 0 then "Muted" else "55%") .. " · toggle", function() action("Settings", { Id = "Volume", Value = if prefs.Volume > 0 then 0 else 0.55 }) end)
+	text(c, "Critical cues always have captions. Low quality reduces decorative lights, shadows and particles. Cinematics always have a skip control.", 14, P.Lagoon, 90)
+	D.rule(c)
+	text(c, "Flight controls\nE / Q: throttle\n↑ / ↓: climb / descend\n← / →: bank\nP: cruise autopilot   G: gear\nC: cabin   F: flight controls\nGamepad: left stick, R2 / L2\nTouch: use the flight pad", 14, P.Porcelain, 190)
+end
+
+function Concierge.render()
+	if not snapshot or not snapshot.Profile then return end
+	D.clear(content); expiryLabels = {}
+	account.Text = credits(snapshot.Profile.Credits) .. "   /   " .. snapshot.Profile.Tokens .. " TOKENS"
+	viewTitle.Text = string.upper(page)
+	status.Text = if snapshot.Profile.SessionOnly then "STUDIO · SESSION DATA" else "PRIVATE JET CHARTER TYCOON"
+	if page == "Charters" then charterPage()
+	elseif page == "Crew" then crewPage()
+	elseif page == "Hangar" then hangarPage()
+	elseif page == "Store" then storePage()
+	elseif page == "Settings" then settingsPage() end
+end
+
+function Concierge.init(callback)
+	send = callback
+	gui = D.make("ScreenGui", { Name = "AsterConcierge", ResetOnSpawn = false, IgnoreGuiInset = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, player:WaitForChild("PlayerGui"))
+	local top = D.make("Frame", { BackgroundColor3 = P.Graphite, BackgroundTransparency = 0.06, BorderSizePixel = 0, Size = UDim2.new(1, 0, 0, 54) }, gui)
+	local brand = text(top, "A S T E R", 19, P.Champagne, 28, Enum.Font.GothamBold); brand.Position = UDim2.fromOffset(20, 3); brand.Size = UDim2.fromOffset(160, 28)
+	status = text(top, "PRIVATE JET CHARTER TYCOON", 9, P.Lagoon, 16, Enum.Font.RobotoMono); status.Position = UDim2.fromOffset(20, 32); status.Size = UDim2.fromOffset(235, 16)
+	account = text(top, "CONNECTING", 11, P.Porcelain, 54, Enum.Font.RobotoMono); account.Size = UDim2.new(0.5, -20, 1, 0); account.Position = UDim2.fromScale(0.5, 0); account.TextXAlignment = Enum.TextXAlignment.Right
+	phone = D.make("Frame", { Name = "ConciergePhone", BackgroundColor3 = P.Graphite, BorderSizePixel = 0, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 66), Size = UDim2.fromOffset(414, 600) }, gui)
+	D.corner(phone, 18); D.make("UIStroke", { Color = P.Champagne, Transparency = 0.55, Thickness = 1 }, phone)
+	viewTitle = text(phone, "CHARTERS", 12, P.Champagne, 50, Enum.Font.RobotoMono); viewTitle.Position = UDim2.fromOffset(20, 0); viewTitle.Size = UDim2.new(1, -80, 0, 50)
+	closeButton = D.button(phone, "×", function() phone.Visible = false end); closeButton.Size = UDim2.fromOffset(48, 42); closeButton.Position = UDim2.new(1, -56, 0, 5)
+	content = D.make("ScrollingFrame", { BackgroundTransparency = 1, BorderSizePixel = 0, Position = UDim2.fromOffset(16, 58), Size = UDim2.new(1, -28, 1, -124), CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 3, ScrollBarImageColor3 = P.Champagne }, phone)
+	D.stack(content, 14)
+	tabs = D.make("ScrollingFrame", { BackgroundTransparency = 1, BorderSizePixel = 0, Position = UDim2.new(0, 12, 1, -58), Size = UDim2.new(1, -24, 0, 52), CanvasSize = UDim2.fromOffset(430, 0), ScrollBarThickness = 0, ScrollingDirection = Enum.ScrollingDirection.X }, phone)
+	for i, name in { "Charters", "Crew", "Hangar", "Store", "Settings" } do
+		local b = D.button(tabs, name, function() page = name; content.CanvasPosition = Vector2.zero; Concierge.render() end)
+		b.Position = UDim2.fromOffset((i - 1) * 86, 0); b.Size = UDim2.fromOffset(82, 48); b.TextSize = 12
+	end
+	local opener = D.button(gui, "PHONE", function() phone.Visible = not phone.Visible; if phone.Visible then action("Sync") end end, true)
+	opener.AnchorPoint = Vector2.new(0, 1); opener.Position = UDim2.new(0, 18, 1, -18); opener.Size = UDim2.fromOffset(108, 48)
+	hint = text(gui, "Loading your hangar…", 14, P.Porcelain, 64); hint.Position = UDim2.new(0, 18, 1, -140); hint.Size = UDim2.fromOffset(330, 64)
+	hint.BackgroundColor3 = P.Graphite; hint.BackgroundTransparency = 0.12; D.corner(hint, 10); D.padding(hint, 10)
+	toast = text(gui, "", 14, P.Porcelain, 60); toast.AnchorPoint = Vector2.new(0.5, 0); toast.Position = UDim2.new(0.5, 0, 0, 64); toast.Size = UDim2.new(0.65, 0, 0, 60)
+	toast.BackgroundColor3 = P.Graphite; toast.BackgroundTransparency = 0.03; toast.Visible = false; toast.ZIndex = 20; D.corner(toast); D.padding(toast, 10)
+	local function resize()
+		local size = workspace.CurrentCamera.ViewportSize
+		phone.Size = UDim2.fromOffset(math.min(414, size.X - 24), math.max(240, size.Y - 150))
+		hint.Visible = size.X > 750 or not phone.Visible
+		hint.Size = UDim2.fromOffset(math.min(330, size.X - 36), 64)
+	end
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(resize); phone:GetPropertyChangedSignal("Visible"):Connect(resize); resize()
+	task.spawn(function() while gui.Parent do
+		for _, entry in expiryLabels do if entry.Label.Parent then entry.Label.Text = "Offer expires in " .. math.max(0, entry.Expires - os.time()) .. "s" end end
+		task.wait(1)
+	end end)
+	return gui
+end
+
+function Concierge.state(data)
+	local previous = snapshot and snapshot.Run
+	snapshot = data
+	if data.Run and (not previous or previous.Stage ~= data.Run.Stage) then
+		if data.Run.Stage ~= "Flight" then phone.Visible = true; page = "Charters" end
+	end
+	if not data.Run then hint.Text = "Open your phone to choose a charter." else
+		local run = data.Run
+		hint.Text = ({ Preparation = "Prepare preferences at the atelier, then walk to the aircraft stair.", Boarding = "Your client is boarding. Welcome aboard.", Ready = "Cabin secured. Start engines from your phone.", Flight = "Fly the route · P autopilot · G gear · C cabin", Arrival = "Open your phone to arrange a discreet arrival.", Results = "Your charter rating and saved reward are on your phone." })[run.Stage] or ""
+	end
+	Concierge.render()
+end
+function Concierge.flight(run) if snapshot then snapshot.Run = run end end
+function Concierge.show(name) page = name or "Charters"; phone.Visible = true; Concierge.render() end
+function Concierge.visible() return phone.Visible end
+function Concierge.visibilityChanged(callback)
+	phone:GetPropertyChangedSignal("Visible"):Connect(function() callback(phone.Visible) end)
+	callback(phone.Visible)
+end
+function Concierge.notice(message)
+	toast.Text = message.Text; toast.TextColor3 = if message.Error then P.Red else P.Porcelain; toast.Visible = true
+	local stamp = os.clock(); toast:SetAttribute("Stamp", stamp)
+	task.delay(4, function() if toast:GetAttribute("Stamp") == stamp then toast.Visible = false end end)
+end
+return Concierge
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="19">
+          <Properties>
+            <string name="Name">Design</string>
+            <string name="Source"><![CDATA[local Shared = game:GetService("ReplicatedStorage").Shared
+local P = require(Shared.Palette)
+local TweenService = game:GetService("TweenService")
+local Design = { P = P }
+function Design.make(class, props, parent)
+	local object = Instance.new(class)
+	for key, value in props do object[key] = value end
+	object.Parent = parent; return object
+end
+function Design.corner(parent, size) Design.make("UICorner", { CornerRadius = UDim.new(0, size or 12) }, parent) end
+function Design.padding(parent, amount)
+	Design.make("UIPadding", { PaddingTop = UDim.new(0, amount), PaddingBottom = UDim.new(0, amount), PaddingLeft = UDim.new(0, amount), PaddingRight = UDim.new(0, amount) }, parent)
+end
+function Design.stack(parent, gap)
+	return Design.make("UIListLayout", { Padding = UDim.new(0, gap or 12), SortOrder = Enum.SortOrder.LayoutOrder }, parent)
+end
+function Design.text(parent, text, size, color, height, font)
+	return Design.make("TextLabel", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, height or size + 8),
+		Text = text, TextSize = size, Font = font or Enum.Font.GothamMedium, TextColor3 = color or P.Porcelain,
+		TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Center }, parent)
+end
+function Design.card(parent)
+	local f = Design.make("Frame", { BackgroundColor3 = Color3.fromRGB(31, 46, 54), BorderSizePixel = 0,
+		Size = UDim2.new(1, -4, 0, 0), AutomaticSize = Enum.AutomaticSize.Y }, parent)
+	Design.corner(f, 12); Design.padding(f, 16); Design.stack(f, 8)
+	return f
+end
+function Design.button(parent, title, callback, primary, enabled)
+	local active = enabled ~= false
+	local b = Design.make("TextButton", { Size = UDim2.new(1, 0, 0, 48), BackgroundColor3 = if primary then P.Champagne else Color3.fromRGB(44, 61, 70),
+		Text = title, TextSize = 15, Font = Enum.Font.GothamMedium, TextColor3 = if primary then P.Graphite else P.Porcelain,
+		AutoButtonColor = false, BorderSizePixel = 0, Selectable = active, Active = active, TextTransparency = if active then 0 else 0.45 }, parent)
+	Design.corner(b, 8)
+	if active then
+		b.Activated:Connect(callback)
+		b.MouseEnter:Connect(function() TweenService:Create(b, TweenInfo.new(0.12), { BackgroundTransparency = 0.15 }):Play() end)
+		b.MouseLeave:Connect(function() TweenService:Create(b, TweenInfo.new(0.12), { BackgroundTransparency = 0 }):Play() end)
+	end
+	return b
+end
+function Design.rule(parent)
+	return Design.make("Frame", { Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = P.Champagne, BackgroundTransparency = 0.7, BorderSizePixel = 0 }, parent)
+end
+function Design.clear(parent)
+	for _, child in parent:GetChildren() do if child:IsA("GuiObject") then child:Destroy() end end
+end
+return Design
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="20">
+          <Properties>
+            <string name="Name">Experience</string>
+            <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local Shared = game:GetService("ReplicatedStorage").Shared
+local Catalog = require(Shared.AudioCatalog)
+local D = require(script.Parent.Design)
+local Experience = {}
+local player = Players.LocalPlayer
+local settings = { Quality = "High", ReducedMotion = false, Volume = 0.55 }
+local run, jet, skip, shot, shotStart, shotDuration, cameraCF
+local sounds, oldLights = {}, {}
+local lastStage, lastPhase
+
+local function setQuality(object)
+	if object:IsA("PointLight") then
+		if oldLights[object] == nil then oldLights[object] = object.Enabled end
+		object.Enabled = settings.Quality ~= "Low" and oldLights[object]
+	elseif object:IsA("BasePart") and (object.Name == "FuselagePanel" or object.Name == "SteelColumn") then
+		object.CastShadow = settings.Quality ~= "Low"
+	end
+end
+function Experience.cancel()
+	shot = nil
+	if skip then skip.Visible = false end
+end
+function Experience.cinematic(kind, duration)
+	if settings.ReducedMotion or not jet then return end
+	shot = kind; shotStart = os.clock(); shotDuration = duration; skip.Visible = true
+end
+local function findJet(owner)
+	local world = workspace:FindFirstChild("AsterWorld"); local plot = world and world:FindFirstChild("Hangar_" .. owner)
+	return plot and plot:FindFirstChild("AsterL6")
+end
+
+function Experience.cue(name)
+	if not name or not Catalog[name] then return end
+	local sound = sounds[name]
+	if sound and sound.SoundId ~= "" then sound:Play() end
+end
+
+function Experience.init(gui)
+	skip = D.button(gui, "Skip cinematic", Experience.cancel)
+	skip.AnchorPoint = Vector2.new(0.5, 1); skip.Position = UDim2.new(0.5, 0, 1, -18); skip.Size = UDim2.fromOffset(176, 48); skip.Visible = false; skip.ZIndex = 30
+	for name, info in Catalog do
+		local sound = Instance.new("Sound"); sound.Name = "Aster" .. name; sound.SoundId = info.Id
+		sound.Looped = info.Loop or false; sound.Volume = info.Volume * settings.Volume
+		sound.RollOffMinDistance = 12; sound.RollOffMaxDistance = 140; sound.Parent = SoundService; sounds[name] = sound
+	end
+	workspace.DescendantAdded:Connect(setQuality)
+	RunService.RenderStepped:Connect(function(dt)
+		local camera = workspace.CurrentCamera
+		if not jet or not jet.Parent then jet = findJet(if run then run.Owner else player.UserId); return end
+		local pivot = jet:GetPivot()
+		local seated = run and run.Stage == "Flight" and run.Seated and run.Seated[player.UserId]
+		if shot and os.clock() - shotStart >= shotDuration then Experience.cancel() end
+		if shot or seated then
+			camera.CameraType = Enum.CameraType.Scriptable
+			local desired
+			if shot then
+				local alpha = math.clamp((os.clock() - shotStart) / shotDuration, 0, 1)
+				local offset = if shot == "Boarding" then Vector3.new(-25, 10, -20) elseif shot == "Arrival" then Vector3.new(-36, 12, 22) else Vector3.new(-43 + alpha * 10, 21, -70 + alpha * 10)
+				desired = CFrame.lookAt(pivot.Position + offset, pivot.Position + Vector3.new(0, 3, 0))
+			else desired = CFrame.lookAt(pivot.Position + Vector3.new(0, 24, 68), pivot.Position + Vector3.new(0, 3, -26)) end
+			cameraCF = if cameraCF then cameraCF:Lerp(desired, math.min(1, dt * 6)) else desired
+			camera.CFrame = cameraCF; camera.FieldOfView = 65
+		else
+			if camera.CameraType == Enum.CameraType.Scriptable then
+				camera.CameraType = Enum.CameraType.Custom
+				local character = player.Character; camera.CameraSubject = character and character:FindFirstChildOfClass("Humanoid")
+			end
+			cameraCF = nil
+		end
+	end)
+end
+
+function Experience.update(newRun, newSettings)
+	if newSettings then
+		local changed = settings.Quality ~= newSettings.Quality
+		settings = newSettings
+		if changed then for _, object in workspace:GetDescendants() do setQuality(object) end end
+		if settings.ReducedMotion then Experience.cancel() end
+	end
+	run = newRun
+	jet = findJet(if run then run.Owner else player.UserId)
+	local stage = if run then run.Stage else "Hangar"
+	if stage ~= lastStage then
+		if stage == "Hangar" then Experience.cinematic("Reveal", 3)
+		elseif stage == "Boarding" then Experience.cinematic("Boarding", 2)
+		elseif stage == "Arrival" then Experience.cinematic("Arrival", 2)
+		elseif stage == "Results" then Experience.cinematic("Arrival", 2) end
+		lastStage = stage
+	end
+	local f = run and run.Flight
+	if f and f.Phase ~= lastPhase then
+		if f.Phase == "Climb" or f.Phase == "Approach" then Experience.cinematic("Flight", 1.4) end
+		lastPhase = f.Phase
+	end
+	for name, sound in sounds do
+		local info = Catalog[name]
+		sound.Volume = info.Volume * settings.Volume
+		if name == "Turbine" and jet then
+			sound.Parent = jet.PrimaryPart; sound.PlaybackSpeed = if f then 0.7 + f.Throttle * 0.6 else 0.7
+			sound.Volume *= if stage == "Flight" then 1 else 0
+		elseif name == "Wind" then sound.Volume *= if stage == "Flight" then 1 else 0
+		elseif name == "Hangar" then sound.Volume *= if stage == "Hangar" or stage == "Preparation" then 1 else 0 end
+		if info.Loop and sound.SoundId ~= "" and not sound.IsPlaying then sound:Play() end
+	end
+	if jet then
+		for _, fx in jet:GetDescendants() do
+			if fx:IsA("ParticleEmitter") then fx.Rate = if stage == "Flight" and settings.Quality == "High" then 8 else 0 end
+			if fx.Name == "CabinCove" and fx:IsA("BasePart") and run then fx.Color = if run.Prep.Mood == "Cool" then D.P.Lagoon else D.P.Champagne end
+		end
+	end
+end
+return Experience
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="21">
+          <Properties>
+            <string name="Name">FlightController</string>
+            <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local ContextActionService = game:GetService("ContextActionService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local D = require(script.Parent.Design)
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local P = D.P
+local Controller = {}
+local player = Players.LocalPlayer
+local run, hud, instruments, guidance, requestLabel, controlPad, actionPad
+local input = { Bank = 0, Pitch = 0, Throttle = 0 }
+local held = {}; local analog = Vector2.zero; local triggers = 0
+local send, remote, cancelCamera
+local obscured = false
+local function active()
+	return run and run.Stage == "Flight" and run.Pilot == player.UserId and run.Seated and run.Seated[player.UserId]
+end
+function Controller.hasControl() return active() end
+function Controller.run() return run end
+function Controller.setObscured(value)
+	obscured = value
+	if hud then hud.Visible = not obscured and run ~= nil and run.Stage == "Flight" end
+end
+
+function Controller.init(gui, callback, inputRemote, cancel)
+	send, remote, cancelCamera = callback, inputRemote, cancel
+	hud = D.make("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false }, gui)
+	instruments = D.text(hud, "", 16, P.Porcelain, 106, Enum.Font.RobotoMono)
+	instruments.Position = UDim2.fromOffset(18, 70); instruments.Size = UDim2.fromOffset(310, 106)
+	instruments.BackgroundColor3 = P.Graphite; instruments.BackgroundTransparency = 0.08; D.corner(instruments); D.padding(instruments, 12)
+	guidance = D.text(hud, "", 13, P.Champagne, 68)
+	guidance.Position = UDim2.fromOffset(18, 182); guidance.Size = UDim2.fromOffset(310, 68); guidance.BackgroundColor3 = P.Graphite; guidance.BackgroundTransparency = 0.08; D.corner(guidance); D.padding(guidance, 12)
+	requestLabel = D.text(hud, "", 14, P.Porcelain, 68)
+	requestLabel.Position = UDim2.new(0.5, -160, 0, 70); requestLabel.Size = UDim2.fromOffset(320, 68); requestLabel.BackgroundColor3 = P.Graphite; requestLabel.BackgroundTransparency = 0.05; D.corner(requestLabel); D.padding(requestLabel, 12)
+	actionPad = D.make("ScrollingFrame", { BackgroundTransparency = 1, BorderSizePixel = 0, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -18), Size = UDim2.fromOffset(164, 244), CanvasSize = UDim2.fromOffset(0, 298), ScrollBarThickness = 2 }, hud)
+	D.stack(actionPad, 5)
+	for _, entry in { { "Autopilot", "P · Autopilot" }, { "Gear", "G · Gear" }, { "Cabin", "C · Cabin" }, { "Cockpit", "F · Controls" }, { "Service", "Serve request" }, { "GoAround", "Go around" } } do
+		D.button(actionPad, entry[2], function() callback(entry[1], {}); cancel() end)
+	end
+	controlPad = D.make("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 140, 1, -18), Size = UDim2.fromOffset(198, 166) }, hud)
+	for i, entry in { { "Up", "↑", Enum.KeyCode.Up }, { "Down", "↓", Enum.KeyCode.Down }, { "Left", "←", Enum.KeyCode.Left }, { "Right", "→", Enum.KeyCode.Right }, { "ThrottleUp", "+", Enum.KeyCode.E }, { "ThrottleDown", "−", Enum.KeyCode.Q } } do
+		local b = D.button(controlPad, entry[2], function() end)
+		b.Size = UDim2.fromOffset(60, 48); b.Position = UDim2.fromOffset(((i - 1) % 3) * 66, math.floor((i - 1) / 3) * 54)
+		b.InputBegan:Connect(function(event) if event.UserInputType == Enum.UserInputType.Touch or event.UserInputType == Enum.UserInputType.MouseButton1 then held[entry[1]] = true; cancel() end end)
+		b.InputEnded:Connect(function(event) if event.UserInputType == Enum.UserInputType.Touch or event.UserInputType == Enum.UserInputType.MouseButton1 then held[entry[1]] = nil end end)
+		ContextActionService:BindAction("Aster" .. entry[1], function(_, state)
+			if not active() or UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
+			held[entry[1]] = state == Enum.UserInputState.Begin or state == Enum.UserInputState.Change
+			if held[entry[1]] then cancel() end
+			return Enum.ContextActionResult.Sink
+		end, false, entry[3])
+	end
+	for _, entry in { { "Autopilot", Enum.KeyCode.P }, { "Gear", Enum.KeyCode.G }, { "Cabin", Enum.KeyCode.C }, { "Cockpit", Enum.KeyCode.F } } do
+		ContextActionService:BindAction("Aster" .. entry[1], function(_, state)
+			if not run or run.Stage ~= "Flight" or UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
+			if state == Enum.UserInputState.Begin then callback(entry[1], {}); cancel() end
+			return Enum.ContextActionResult.Sink
+		end, false, entry[2])
+	end
+	ContextActionService:BindAction("AsterStick", function(_, state, event)
+		if not active() then analog = Vector2.zero; return Enum.ContextActionResult.Pass end
+		analog = if state == Enum.UserInputState.End then Vector2.zero else Vector2.new(event.Position.X, event.Position.Y)
+		if analog.Magnitude > 0.1 then cancel() end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.KeyCode.Thumbstick1)
+	ContextActionService:BindAction("AsterTriggers", function(_, state, event)
+		if not active() then triggers = 0; return Enum.ContextActionResult.Pass end
+		triggers = if state == Enum.UserInputState.End then 0 elseif event.KeyCode == Enum.KeyCode.ButtonR2 then event.Position.Z else -event.Position.Z
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.KeyCode.ButtonR2, Enum.KeyCode.ButtonL2)
+	UserInputService.WindowFocusReleased:Connect(function() table.clear(held); analog = Vector2.zero; triggers = 0 end)
+	local timer = 0
+	RunService.Heartbeat:Connect(function(dt)
+		timer += dt
+		if timer < 0.1 then return end; timer = 0
+		if active() then
+			input.Bank = math.clamp((if held.Right then 1 else 0) - (if held.Left then 1 else 0) + analog.X, -1, 1)
+			input.Pitch = math.clamp((if held.Up then 1 else 0) - (if held.Down then 1 else 0) + analog.Y, -1, 1)
+			input.Throttle = math.clamp((if held.ThrottleUp then 1 else 0) - (if held.ThrottleDown then 1 else 0) + triggers, -1, 1)
+			remote:FireServer(input)
+		end
+	end)
+	local function resize()
+		local width = workspace.CurrentCamera.ViewportSize.X
+		local small = width < 700
+		instruments.Size = UDim2.fromOffset(if small then 230 else 310, 106)
+		guidance.Size = UDim2.fromOffset(if small then 230 else 310, 68)
+		requestLabel.Position = if small then UDim2.fromOffset(18, 258) else UDim2.new(0.5, -160, 0, 70)
+		requestLabel.Size = UDim2.fromOffset(if small then 230 else 320, 68)
+		controlPad.Position = UDim2.new(0, if small then 16 else 140, 1, if small then -76 else -18)
+		actionPad.Size = UDim2.fromOffset(if small then 138 else 164, if small then 160 else 244)
+	end
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(resize); resize()
+end
+
+function Controller.update(newRun)
+	run = newRun
+	hud.Visible = not obscured and run ~= nil and run.Stage == "Flight"
+	if not hud.Visible then table.clear(held); return end
+	local f = run.Flight
+	if not f then return end
+	controlPad.Visible = active()
+	instruments.Text = string.format("%s  /  %s\n%03d KTS     %04d FT\nTHR %d%%   GEAR %s\nROUTE %d%%", string.upper(f.Phase), if f.Autopilot then "AUTO" else "MANUAL", f.Speed, math.max(0, f.Altitude - 5.4), f.Throttle * 100, if f.Gear then "DOWN" else "UP", math.clamp(f.Z / Config.Flight.RunwayEnd * 100, 0, 100))
+	if f.Phase == "Taxi" then guidance.Text = "E / +: increase throttle\nAt 72 knots, hold ↑ to rotate."
+	elseif f.Phase == "Climb" then guidance.Text = "Climb to 260 ft · G to retract gear\nLevel off with neutral pitch."
+	elseif f.Phase == "Cruise" then guidance.Text = "P: cruise autopilot · C: cabin\nServe requests at the galley."
+	else
+		local distance = math.max(0, Config.Flight.RunwayStart + 300 - f.Z)
+		local targetAlt = math.clamp(distance * 0.072 + 5.4, 5.4, 260)
+		guidance.Text = string.format("APPROACH · target %.0f ft\n%s %.0f · 45–88 KTS · gear DOWN\n↓ descend · neutral pitch to flare", targetAlt, if f.X > 0 then "← LEFT" else "RIGHT →", math.abs(f.X))
+	end
+	requestLabel.Visible = run.Request ~= nil
+	if run.Request then requestLabel.Text = "CLIENT REQUEST\n" .. run.Request.Text .. "\n" .. math.max(0, run.Request.Expires - os.time()) .. " seconds" end
+end
+return Controller
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="LocalScript" referent="22">
+          <Properties>
+            <string name="Name">Main</string>
+            <string name="Source"><![CDATA[local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local Concierge = require(script.Parent.Concierge)
+local FlightController = require(script.Parent.FlightController)
+local Experience = require(script.Parent.Experience)
+local remotes = ReplicatedStorage:WaitForChild("Remotes")
+local event = remotes:WaitForChild("Concierge")
+local function send(action, data) event:FireServer(action, data or {}) end
+local gui = Concierge.init(send)
+Experience.init(gui)
+FlightController.init(gui, send, remotes:WaitForChild("FlightInput"), Experience.cancel)
+Concierge.visibilityChanged(FlightController.setObscured)
+local settings
+event.OnClientEvent:Connect(function(kind, data)
+	if kind == "State" then
+		if not data.Profile then return end
+		settings = data.Profile.Settings
+		Concierge.state(data); FlightController.update(data.Run); Experience.update(data.Run, settings)
+	elseif kind == "Flight" then
+		Concierge.flight(data); FlightController.update(data); Experience.update(data, settings)
+	elseif kind == "Notice" then Concierge.notice(data); Experience.cue(data.Cue) end
+end)
+ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
+	if player ~= Players.LocalPlayer then return end
+	local action = prompt.Parent:GetAttribute("Action")
+	if action == "Phone" or action == "Prep" then Concierge.show("Charters"); send("Sync")
+	elseif action == "Service" or action == "Board" or action == "Cockpit" then send(action) end
+end)
+GuiService.AutoSelectGuiEnabled = true
+task.spawn(function() for _ = 1, 4 do send("Sync"); task.wait(2) end end)
+print("[PJCT] client ready")
+]]></string>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="Workspace" referent="23">
+    <Properties>
+      <string name="Name">Workspace</string>
+      <float name="Gravity">120</float>
+      <bool name="NeedsPivotMigration">false</bool>
+      <bool name="StreamingEnabled">true</bool>
+      <int name="StreamingTargetRadius">2048</int>
+    </Properties>
+  </Item>
+</roblox>
