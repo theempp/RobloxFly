@@ -1,0 +1,13 @@
+tools/rojo/
+tools/luau/
+tools/lune/
+tools/vendor/
+tools/*.zip
+build/*.rbxl*
+build/*.rbxm
+build/*.log
+build/scene.json
+.DS_Store
+*.rbxl.lock
+*.rbxlx.lock
+node_modules/

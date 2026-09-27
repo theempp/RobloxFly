@@ -1,0 +1,14 @@
+{
+  "name": "Private Jet Charter Tycoon",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {"Shared": {"$path": "src/shared"}},
+    "ServerScriptService": {"Server": {"$path": "src/server"}},
+    "StarterPlayer": {
+      "$properties": {"CameraMaxZoomDistance": 100, "CharacterWalkSpeed": 18},
+      "StarterPlayerScripts": {"Client": {"$path": "src/client"}}
+    },
+    "Workspace": {"$properties": {"StreamingEnabled": true, "StreamingTargetRadius": 2048, "Gravity": 120}},
+    "Lighting": {"$properties": {"Brightness": 2, "ClockTime": 16.7, "GlobalShadows": true, "EnvironmentDiffuseScale": 0.55, "EnvironmentSpecularScale": 1}}
+  }
+}
